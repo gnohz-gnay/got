@@ -35,4 +35,6 @@ DEBUG = -O0 -pg -g -static
 DEBUG = -O0 -g
 .endif
 
+WARNS = 6
+
 .endif
