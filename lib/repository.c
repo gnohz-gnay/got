@@ -1150,7 +1150,7 @@ got_repo_get_cached_pack(struct got_repository *repo, const char *path_packfile)
 }
 
 const struct got_error *
-got_repo_init(const char *repo_path)
+got_repo_init(const char *repo_path, int fd)
 {
 	const struct got_error *err = NULL;
 	const char *dirnames[] = {
@@ -1168,37 +1168,42 @@ got_repo_init(const char *repo_path)
 	char *path;
 	size_t i;
 
-	if (!got_path_dir_is_empty(repo_path))
+	if (!got_path_dir_is_empty(fd)) {
+		printf("not empty\n");
 		return got_error(GOT_ERR_DIR_NOT_EMPTY);
-
-	for (i = 0; i < nitems(dirnames); i++) {
-		if (asprintf(&path, "%s/%s", repo_path, dirnames[i]) == -1) {
-			return got_error_from_errno("asprintf");
-		}
-		err = got_path_mkdir(path);
-		free(path);
-		if (err)
-			return err;
 	}
 
-	if (asprintf(&path, "%s/%s", repo_path, "description") == -1)
-		return got_error_from_errno("asprintf");
-	err = got_path_create_file(path, description_str);
-	free(path);
+	for (i = 0; i < nitems(dirnames); i++) {
+		//if (asprintf(&path, "%s/%s", repo_path, dirnames[i]) == -1) {
+		//	return got_error_from_errno("asprintf");
+		//}
+		if (mkdirat(fd, dirnames[i], GOT_DEFAULT_DIR_MODE) == -1) {
+			return got_error_from_errno("mkdirat");
+		}
+		//err = got_path_mkdir(path);
+		//free(path);
+		//if (err)
+		//	return err;
+	}
+
+	//if (asprintf(&path, "%s/%s", repo_path, "description") == -1)
+	//	return got_error_from_errno("asprintf");
+	err = got_path_create_fileat(fd, "description", description_str);
+	//free(path);
 	if (err)
 		return err;
 
-	if (asprintf(&path, "%s/%s", repo_path, GOT_HEAD_FILE) == -1)
-		return got_error_from_errno("asprintf");
-	err = got_path_create_file(path, headref_str);
-	free(path);
+	//if (asprintf(&path, "%s/%s", repo_path, GOT_HEAD_FILE) == -1)
+	//	return got_error_from_errno("asprintf");
+	err = got_path_create_fileat(fd, GOT_HEAD_FILE, headref_str);
+	//free(path);
 	if (err)
 		return err;
 
-	if (asprintf(&path, "%s/%s", repo_path, "config") == -1)
-		return got_error_from_errno("asprintf");
-	err = got_path_create_file(path, gitconfig_str);
-	free(path);
+	//if (asprintf(&path, "%s/%s", repo_path, "config") == -1)
+	//	return got_error_from_errno("asprintf");
+	err = got_path_create_fileat(fd, "config", gitconfig_str);
+	//free(path);
 	if (err)
 		return err;
 

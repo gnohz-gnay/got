@@ -334,13 +334,15 @@ done:
 }
 
 int
-got_path_dir_is_empty(const char *dir)
+got_path_dir_is_empty(int fd)
 {
 	DIR *d;
 	struct dirent *dent;
+	int fd_dup;
 	int empty = 1;
 
-	d = opendir(dir);
+	fd_dup = dup(fd);
+	d = fdopendir(fd_dup);
 	if (d == NULL)
 		return 1;
 

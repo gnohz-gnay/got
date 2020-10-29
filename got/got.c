@@ -58,6 +58,9 @@
 #include "got_opentemp.h"
 #include "got_gotconfig.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 #ifndef nitems
 #define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
 #endif
@@ -341,6 +344,7 @@ cmd_init(int argc, char *argv[])
 	const struct got_error *error = NULL;
 	char *repo_path = NULL;
 	int ch;
+	int repo_fd;
 
 	while ((ch = getopt(argc, argv, "")) != -1) {
 		switch (ch) {
@@ -371,11 +375,16 @@ cmd_init(int argc, char *argv[])
 	    !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 		goto done;
 
+	repo_fd = open(repo_path, O_CREAT | O_DIRECTORY);
+	
+	if (caph_enter() < 0)
+		err(1, "cap_enter");
+
 	error = apply_unveil(repo_path, 0, NULL);
 	if (error)
 		goto done;
 
-	error = got_repo_init(repo_path);
+	error = got_repo_init(repo_path, repo_fd);
 done:
 	free(repo_path);
 	return error;
@@ -1490,7 +1499,8 @@ cmd_clone(int argc, char *argv[])
 		goto done;
 
 	if (!list_refs_only) {
-		error = got_repo_init(repo_path);
+		int repo_fd = open(repo_path, O_RDWR | O_CREAT);
+		error = got_repo_init(repo_path, repo_fd);
 		if (error)
 			goto done;
 		error = got_repo_open(&repo, repo_path, NULL);
