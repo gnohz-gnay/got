@@ -89,7 +89,8 @@ create_object_file(struct got_object_id *id, FILE *content,
 	if (err)
 		goto done;
 
-	err = got_lockfile_lock(&lf, objpath);
+	printf("LOCKFILE NEED TO TEST %s\n", objpath);
+	err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), objpath);
 	if (err)
 		goto done;
 

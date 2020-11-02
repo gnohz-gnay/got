@@ -46,6 +46,7 @@
 #include "got_reference.h"
 #include "got_repository.h"
 #include "got_path.h"
+#include "got_privsep.h"
 #include "got_cancel.h"
 #include "got_worktree.h"
 #include "got_object.h"
@@ -79,6 +80,17 @@ got_repo_get_path_git_dir(struct got_repository *repo)
 	return repo->path_git_dir;
 }
 
+int
+got_repo_get_path_fd(struct got_repository *repo)
+{
+	return repo->path_fd;
+}
+
+int
+got_repo_get_path_git_dir_fd(struct got_repository *repo)
+{
+	return repo->path_git_dir_fd;
+}
 const char *
 got_repo_get_gitconfig_author_name(struct got_repository *repo)
 {
@@ -133,7 +145,7 @@ got_repo_get_path_objects(struct got_repository *repo)
 	return get_path_git_child(repo, GOT_OBJECTS_DIR);
 }
 
-char *
+char * //NOTE: NONE OF THESE SHOULD BE NEEDED AFTER I'M DONE
 got_repo_get_path_objects_pack(struct got_repository *repo)
 {
 	return get_path_git_child(repo, GOT_OBJECTS_PACK_DIR);
@@ -331,7 +343,7 @@ got_repo_get_cached_tag(struct got_repository *repo, struct got_object_id *id)
 }
 
 const struct got_error *
-open_repo(struct got_repository *repo, const char *path)
+open_repo(struct got_repository *repo, const char *path) //NOTE: don't like opening stuff here - but maybe we can just do the cap_rights stuff outside, in the main fn
 {
 	const struct got_error *err = NULL;
 
@@ -339,6 +351,8 @@ open_repo(struct got_repository *repo, const char *path)
 	repo->path_git_dir = strdup(path);
 	if (repo->path_git_dir == NULL)
 		return got_error_from_errno("strdup");
+	repo->path_fd = open(path, O_DIRECTORY | O_CREAT); //NOTE: spooky ordering
+	repo->path_git_dir_fd = open(repo->path_git_dir, O_DIRECTORY | O_CREAT);
 	if (is_git_repo(repo)) {
 		repo->path = strdup(repo->path_git_dir);
 		if (repo->path == NULL) {
@@ -355,6 +369,8 @@ open_repo(struct got_repository *repo, const char *path)
 		err = got_error_from_errno("asprintf");
 		goto done;
 	}
+	repo->path_fd = open(path, O_DIRECTORY | O_CREAT);
+	repo->path_git_dir_fd = open(repo->path_git_dir, O_DIRECTORY | O_CREAT);
 	if (is_git_repo(repo)) {
 		repo->path = strdup(path);
 		if (repo->path == NULL) {
@@ -954,11 +970,16 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 	}
 	/* No luck. Search the filesystem. */
 
-	path_packdir = got_repo_get_path_objects_pack(repo);
+	path_packdir = GOT_OBJECTS_PACK_DIR;
+	const char *path_packdir2 = got_repo_get_path_objects_pack(repo);
 	if (path_packdir == NULL)
 		return got_error_from_errno("got_repo_get_path_objects_pack");
 
-	packdir = opendir(path_packdir);
+	printf("repo: %s\n", got_repo_get_path_git_dir(repo));
+	int fd = openat(got_repo_get_path_git_dir_fd(repo), path_packdir, O_DIRECTORY); 
+	packdir = fdopendir(fd);
+	//packdir = opendir(path_packdir2);
+
 	if (packdir == NULL) {
 		if (errno == ENOENT)
 			err = got_error_no_obj(id);
@@ -1013,7 +1034,7 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 
 	err = got_error_no_obj(id);
 done:
-	free(path_packdir);
+	//free(path_packdir);
 	if (packdir && closedir(packdir) != 0 && err == NULL)
 		err = got_error_from_errno("closedir");
 	return err;

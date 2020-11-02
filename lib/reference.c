@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <sha1.h>
 #include <stdio.h>
@@ -165,7 +166,7 @@ parse_ref_line(struct got_reference **ref, const char *name, const char *line)
 
 static const struct got_error *
 parse_ref_file(struct got_reference **ref, const char *name,
-    const char *absname, const char *abspath, int lock)
+    int repo_fd, const char *absname, const char *abspath, int lock)
 {
 	const struct got_error *err = NULL;
 	FILE *f;
@@ -175,15 +176,18 @@ parse_ref_file(struct got_reference **ref, const char *name,
 	struct got_lockfile *lf = NULL;
 
 	if (lock) {
-		err = got_lockfile_lock(&lf, abspath);
+		//err = got_lockfile_lock(&lf, abspath);
+		err = got_lockfile_lock(&lf, repo_fd, name);
 		if (err) {
 			if (err->code == GOT_ERR_ERRNO && errno == ENOENT)
 				err = got_error_not_ref(name);
 			return err;
 		}
 	}
-
-	f = fopen(abspath, "rb");
+	
+	//f = fopen(abspath, "rb");
+	int fd = openat(repo_fd, name, 0); 
+	f = fdopen(fd, "rb");
 	if (f == NULL) {
 		if (errno != ENOTDIR && errno != ENOENT)
 			err = got_error_from_errno2("fopen", abspath);
@@ -397,7 +401,7 @@ open_packed_ref(struct got_reference **ref, FILE *f, const char **subdirs,
 }
 
 static const struct got_error *
-open_ref(struct got_reference **ref, const char *path_refs, const char *subdir,
+open_ref(struct got_reference **ref, struct got_repository *repo, const char *path_refs, const char *subdir,
     const char *name, int lock)
 {
 	const struct got_error *err = NULL;
@@ -424,7 +428,7 @@ open_ref(struct got_reference **ref, const char *path_refs, const char *subdir,
 		}
 	}
 
-	err = parse_ref_file(ref, name, absname, path, lock);
+	err = parse_ref_file(ref, name, got_repo_get_path_git_dir_fd(repo), absname, path, lock);
 done:
 	if (!ref_is_absolute && !ref_is_well_known)
 		free(absname);
@@ -454,14 +458,14 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 	}
 
 	if (well_known) {
-		err = open_ref(ref, path_refs, "", refname, lock);
+		err = open_ref(ref, repo, path_refs, "", refname, lock);
 	} else {
 		char *packed_refs_path;
 		FILE *f;
 
 		/* Search on-disk refs before packed refs! */
 		for (i = 0; i < nitems(subdirs); i++) {
-			err = open_ref(ref, path_refs, subdirs[i], refname,
+			err = open_ref(ref, repo, path_refs, subdirs[i], refname,
 			    lock);
 			if ((err && err->code != GOT_ERR_NOT_REF) || *ref)
 				goto done;
@@ -475,7 +479,8 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 		}
 
 		if (lock) {
-			err = got_lockfile_lock(&lf, packed_refs_path);
+			printf("NEED TO TEST %s\n", packed_refs_path);
+			err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), packed_refs_path);
 			if (err)
 				goto done;
 		}
@@ -829,7 +834,7 @@ gather_on_disk_refs(struct got_reflist_head *refs, const char *path_refs,
 
 		switch (type) {
 		case DT_REG:
-			err = open_ref(&ref, path_refs, subdir, dent->d_name,
+			err = open_ref(&ref, repo, path_refs, subdir, dent->d_name,
 			    0);
 			if (err)
 				goto done;
@@ -882,7 +887,7 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 			err = got_error_from_errno("get_refs_dir_path");
 			goto done;
 		}
-		err = open_ref(&ref, path_refs, "", GOT_REF_HEAD, 0);
+		err = open_ref(&ref, repo, path_refs, "", GOT_REF_HEAD, 0);
 		if (err)
 			goto done;
 		err = insert_ref(&new, refs, ref, repo,
@@ -899,7 +904,7 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 			err = got_error_from_errno("get_refs_dir_path");
 			goto done;
 		}
-		err = open_ref(&ref, path_refs, "", refname, 0);
+		err = open_ref(&ref, repo, path_refs, "", refname, 0);
 		if (err) {
 			if (err->code != GOT_ERR_NOT_REF)
 				goto done;
@@ -1128,7 +1133,8 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 	}
 
 	if (ref->lf == NULL) {
-		err = got_lockfile_lock(&lf, path);
+		printf("NEED TO TEST %s\n", path);
+		err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), path);
 		if (err)
 			goto done;
 	}
@@ -1196,7 +1202,8 @@ delete_packed_ref(struct got_reference *delref, struct got_repository *repo)
 		goto done;
 
 	if (delref->lf == NULL) {
-		err = got_lockfile_lock(&lf, packed_refs_path);
+		printf("NEED TO TEST %s\n", packed_refs_path);
+		err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), packed_refs_path);
 		if (err)
 			goto done;
 	}
@@ -1337,7 +1344,8 @@ delete_loose_ref(struct got_reference *ref, struct got_repository *repo)
 	}
 
 	if (ref->lf == NULL) {
-		err = got_lockfile_lock(&lf, path);
+		printf("NEED TO TEST %s\n", path);
+		err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), path);
 		if (err)
 			goto done;
 	}

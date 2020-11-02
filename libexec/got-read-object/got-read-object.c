@@ -70,6 +70,7 @@ main(int argc, char *argv[])
 	signal(SIGINT, catch_sigint);
 
 	imsg_init(&ibuf, GOT_IMSG_FD_CHILD);
+	fprintf(stderr, "test test test\n");
 
 #ifndef PROFILE
 	/* revoke access to most system calls */

@@ -9,6 +9,7 @@ CFLAGS += ${CPPFLAGS} -I${OPENBSD_COMPAT}
 CFLAGS += -Wno-pointer-sign
 
 LDADD += -lopenbsd-compat
+LDADD += -lnv
 LIBADD += md
 
 WARNS = 0

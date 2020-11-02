@@ -33,7 +33,7 @@
 #include "got_lib_lockfile.h"
 
 const struct got_error *
-got_lockfile_lock(struct got_lockfile **lf, const char *path)
+got_lockfile_lock(struct got_lockfile **lf, int fd, const char *path)
 {
 	const struct got_error *err = NULL;
 	int attempts = 5;
@@ -55,7 +55,7 @@ got_lockfile_lock(struct got_lockfile **lf, const char *path)
 	}
 
 	do {
-		(*lf)->fd = open((*lf)->path,
+		(*lf)->fd = openat(fd, (*lf)->path,
 		    O_RDONLY | O_CREAT | O_EXCL | O_EXLOCK,
 		    GOT_DEFAULT_FILE_MODE);
 		if ((*lf)->fd != -1)

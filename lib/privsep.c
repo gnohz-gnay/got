@@ -49,6 +49,9 @@
 #include "got_lib_privsep.h"
 #include "got_lib_pack.h"
 
+#include <sys/nv.h>
+#include <fcntl.h>
+
 #ifndef MIN
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #endif
@@ -2252,6 +2255,8 @@ got_privsep_recv_traversed_commits(struct got_commit_object **changed_commit,
 	return err;
 }
 
+static nvlist_t *helper_nv;
+
 const struct got_error *
 got_privsep_unveil_exec_helpers(void)
 {
@@ -2268,19 +2273,27 @@ got_privsep_unveil_exec_helpers(void)
 	    GOT_PATH_PROG_INDEX_PACK,
 	};
 	size_t i;
+	int fd;
+
+	helper_nv = nvlist_create(0);
 
 	for (i = 0; i < nitems(helpers); i++) {
+		/*
 		if (unveil(helpers[i], "x") == 0)
 			continue;
 		return got_error_from_errno2("unveil", helpers[i]);
+		*/
+		fd = open(helpers[i], O_EXEC);
+		nvlist_move_descriptor(helper_nv, helpers[i], fd);
 	}
-
 	return NULL;
 }
 
 void
 got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 {
+	const char **argv;
+
 	if (close(imsg_fds[0]) != 0) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
 		_exit(1);
@@ -2290,12 +2303,23 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
 		_exit(1);
 	}
+	/* NOTE need to ask about this part
 	if (closefrom(GOT_IMSG_FD_CHILD + 1) == -1) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
 		_exit(1);
 	}
+	*/
 
-	if (execl(path, path, repo_path, (char *)NULL) == -1) {
+	int fd = nvlist_get_descriptor(helper_nv, path);
+
+	argv = malloc(sizeof(char *) * 3);
+	argv[0] = path;
+	argv[1] = repo_path;
+	argv[2] = (char *) NULL;
+
+	printf("starting child... %s\n", path);
+
+	if (fexecve(fd, __DECONST(char **, argv), NULL) == -1) {
 		fprintf(stderr, "%s: %s: %s\n", getprogname(), path,
 		    strerror(errno));
 		_exit(1);

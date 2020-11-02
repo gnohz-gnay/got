@@ -26,11 +26,15 @@ const struct got_error *got_repo_close(struct got_repository*);
 /* Obtain the on-disk path to the repository. */
 const char *got_repo_get_path(struct got_repository *);
 
+int got_repo_get_path_fd(struct got_repository *);
+
 /*
  * Obtain the path to a non-bare repository's .git directory.
  * For bare repositories, this returns the same result as got_repo_get_path().
  */
 const char *got_repo_get_path_git_dir(struct got_repository *);
+
+int got_repo_get_path_git_dir_fd(struct got_repository *);
 
 /* Obtain the commit author name if parsed from gitconfig, else NULL. */
 const char *got_repo_get_gitconfig_author_name(struct got_repository *);

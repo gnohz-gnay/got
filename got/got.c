@@ -321,10 +321,6 @@ apply_unveil(const char *repo_path, int repo_read_only,
 	if (unveil(GOT_TMPDIR_STR, "rwc") != 0)
 		return got_error_from_errno2("unveil", GOT_TMPDIR_STR);
 
-	err = got_privsep_unveil_exec_helpers();
-	if (err != NULL)
-		return err;
-
 	if (unveil(NULL, NULL) != 0)
 		return got_error_from_errno("unveil");
 
@@ -2701,12 +2697,18 @@ cmd_checkout(int argc, char *argv[])
 	} else
 		usage_checkout();
 
+	error = got_privsep_unveil_exec_helpers();
+	if (error != NULL)
+		goto done;
+
 	got_path_strip_trailing_slashes(repo_path);
 	got_path_strip_trailing_slashes(worktree_path);
 
 	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
+
+	int worktree_fd = open(worktree_path, O_CREAT | O_DIRECTORY);
 
 	/* Pre-create work tree path for unveil(2) */
 	error = got_path_mkdir(worktree_path);
@@ -2715,7 +2717,7 @@ cmd_checkout(int argc, char *argv[])
 		    !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 			goto done;
 		if (!allow_nonempty &&
-		    !got_path_dir_is_empty(worktree_path)) {
+		    !got_path_dir_is_empty(worktree_fd)) {
 			error = got_error_path(worktree_path,
 			    GOT_ERR_DIR_NOT_EMPTY);
 			goto done;
@@ -2740,6 +2742,9 @@ cmd_checkout(int argc, char *argv[])
 	if (error)
 		goto done;
 
+	//if (caph_enter() < 0)
+	//	err(1, "caph_enter");
+
 	error = got_ref_open(&head_ref, repo, branch_name, 0);
 	if (error != NULL)
 		goto done;
@@ -2748,7 +2753,9 @@ cmd_checkout(int argc, char *argv[])
 	if (error != NULL && !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 		goto done;
 
+	printf("worktree_open start\n");
 	error = got_worktree_open(&worktree, worktree_path);
+	printf("worktree_open end\n");
 	if (error != NULL)
 		goto done;
 

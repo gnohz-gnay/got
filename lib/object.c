@@ -79,7 +79,9 @@ got_object_get_type(int *type, struct got_repository *repo,
 	const struct got_error *err = NULL;
 	struct got_object *obj;
 
+	printf("got_object_get_type\n");
 	err = got_object_open(&obj, repo, id);
+	printf("got_object_get_type\n");
 	if (err)
 		return err;
 
@@ -109,7 +111,7 @@ got_object_get_path(char **path, struct got_object_id *id,
 
 	*path = NULL;
 
-	path_objects = got_repo_get_path_objects(repo);
+	path_objects = GOT_OBJECTS_DIR; 
 	if (path_objects == NULL)
 		return got_error_from_errno("got_repo_get_path_objects");
 
@@ -123,7 +125,7 @@ got_object_get_path(char **path, struct got_object_id *id,
 
 done:
 	free(hex);
-	free(path_objects);
+	//free(path_objects);
 	return err;
 }
 
@@ -292,6 +294,7 @@ open_packed_object(struct got_object **obj, struct got_object_id *id,
 	int idx;
 	char *path_packfile;
 
+	printf("open_packed_object\n");
 	err = got_repo_search_packidx(&packidx, &idx, repo, id);
 	if (err)
 		return err;
@@ -310,6 +313,7 @@ open_packed_object(struct got_object **obj, struct got_object_id *id,
 	err = read_packed_object_privsep(obj, repo, pack, packidx, idx, id);
 	if (err)
 		goto done;
+	printf("open_packed_object\n");
 done:
 	free(path_packfile);
 	return err;
@@ -338,6 +342,7 @@ read_object_header_privsep(struct got_object **obj, struct got_repository *repo,
 	int imsg_fds[2];
 	pid_t pid;
 	struct imsgbuf *ibuf;
+	printf("read_object_header_privsep start\n");
 
 	if (repo->privsep_children[GOT_REPO_PRIVSEP_CHILD_OBJECT].imsg_fd != -1)
 		return request_object(obj, repo, obj_fd);
@@ -375,6 +380,8 @@ read_object_header_privsep(struct got_object **obj, struct got_repository *repo,
 	imsg_init(ibuf, imsg_fds[0]);
 	repo->privsep_children[GOT_REPO_PRIVSEP_CHILD_OBJECT].ibuf = ibuf;
 
+	printf("read_object_header_privsep end\n");
+
 	return request_object(obj, repo, obj_fd);
 }
 
@@ -386,6 +393,7 @@ got_object_open(struct got_object **obj, struct got_repository *repo,
 	const struct got_error *err = NULL;
 	char *path;
 	int fd;
+	printf("got_object_open start\n");
 
 	*obj = got_repo_get_cached_object(repo, id);
 	if (*obj != NULL) {
@@ -405,7 +413,7 @@ got_object_open(struct got_object **obj, struct got_repository *repo,
 	if (err)
 		return err;
 
-	fd = open(path, O_RDONLY | O_NOFOLLOW);
+	fd = openat(got_repo_get_path_git_dir_fd(repo), path, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1) {
 		if (errno == ENOENT)
 			err = got_error_no_obj(id);
@@ -421,6 +429,7 @@ got_object_open(struct got_object **obj, struct got_repository *repo,
 
 	(*obj)->refcnt++;
 	err = got_repo_cache_object(repo, id, *obj);
+		printf("got_object_open end\n");
 done:
 	free(path);
 	return err;
@@ -531,7 +540,7 @@ read_commit_privsep(struct got_commit_object **commit, int obj_fd,
 		free(ibuf);
 		return err;
 	}
-
+	
 	pid = fork();
 	if (pid == -1) {
 		err = got_error_from_errno("fork");
@@ -720,7 +729,7 @@ read_tree_privsep(struct got_tree_object **tree, int obj_fd,
 		free(ibuf);
 		return err;
 	}
-
+	
 	pid = fork();
 	if (pid == -1) {
 		err = got_error_from_errno("fork");
