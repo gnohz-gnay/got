@@ -60,6 +60,8 @@
 #define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
 #endif
 
+extern char **environ;
+
 static const struct got_error *
 poll_fd(int fd, int events, int timeout)
 {
@@ -2293,6 +2295,7 @@ void
 got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 {
 	const char **argv;
+	int fd = nvlist_get_descriptor(helper_nv, path);
 
 	if (close(imsg_fds[0]) != 0) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
@@ -2303,14 +2306,19 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
 		_exit(1);
 	}
+
+	int min = MIN(GOT_IMSG_FD_CHILD, fd);
+	int max = GOT_IMSG_FD_CHILD + fd - min; 
+	if (closefrom(max + 1) == -1) {
+		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
+		_exit(1);
+	}
 	/* NOTE need to ask about this part
 	if (closefrom(GOT_IMSG_FD_CHILD + 1) == -1) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
 		_exit(1);
 	}
 	*/
-
-	int fd = nvlist_get_descriptor(helper_nv, path);
 
 	argv = malloc(sizeof(char *) * 3);
 	argv[0] = path;
@@ -2319,7 +2327,7 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 
 	printf("starting child... %s\n", path);
 
-	if (fexecve(fd, __DECONST(char **, argv), NULL) == -1) {
+	if (fexecve(fd, __DECONST(char **, argv), environ) == -1) {
 		fprintf(stderr, "%s: %s: %s\n", getprogname(), path,
 		    strerror(errno));
 		_exit(1);

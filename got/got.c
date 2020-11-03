@@ -321,6 +321,10 @@ apply_unveil(const char *repo_path, int repo_read_only,
 	if (unveil(GOT_TMPDIR_STR, "rwc") != 0)
 		return got_error_from_errno2("unveil", GOT_TMPDIR_STR);
 
+	err = got_privsep_unveil_exec_helpers();
+	if (err != NULL)
+		return err;
+
 	if (unveil(NULL, NULL) != 0)
 		return got_error_from_errno("unveil");
 
@@ -2697,20 +2701,24 @@ cmd_checkout(int argc, char *argv[])
 	} else
 		usage_checkout();
 
-	error = got_privsep_unveil_exec_helpers();
-	if (error != NULL)
-		goto done;
-
 	got_path_strip_trailing_slashes(repo_path);
 	got_path_strip_trailing_slashes(worktree_path);
+
+	error = apply_unveil(repo_path, 0, worktree_path); //used to be get_path after got_repo_open
+	if (error)
+		goto done;
 
 	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
 
-	int worktree_fd = open(worktree_path, O_CREAT | O_DIRECTORY);
-
 	/* Pre-create work tree path for unveil(2) */
+	int worktree_fd = open(worktree_path, O_DIRECTORY);
+	if (worktree_fd == -1) {
+		error = got_error_from_errno2("open", worktree_path);
+		goto done;
+	}
+
 	error = got_path_mkdir(worktree_path);
 	if (error) {
 		if (!(error->code == GOT_ERR_ERRNO && errno == EISDIR) &&
@@ -2723,11 +2731,6 @@ cmd_checkout(int argc, char *argv[])
 			goto done;
 		}
 	}
-	int worktree_fd = open(worktree_path, O_DIRECTORY);
-	if (worktree_fd == -1) {
-		error = got_error_from_errno2("open", worktree_path);
-		goto done;
-	}
 
 	/* Make worktree path absolute */
 	char *worktree_path_abs = realpath(worktree_path, NULL);
@@ -2737,10 +2740,6 @@ cmd_checkout(int argc, char *argv[])
 	}
 	free(worktree_path);
 	worktree_path = worktree_path_abs;
-
-	error = apply_unveil(got_repo_get_path(repo), 0, worktree_path);
-	if (error)
-		goto done;
 
 	//if (caph_enter() < 0)
 	//	err(1, "caph_enter");
@@ -2804,10 +2803,12 @@ cmd_checkout(int argc, char *argv[])
 		goto done;
 	cpa.worktree_path = worktree_path;
 	cpa.had_base_commit_ref_error = 0;
+	printf("worktree_checkout_files begin\n");
 	error = got_worktree_checkout_files(worktree, &paths, repo,
 	    checkout_progress, &cpa, check_cancelled, NULL);
 	if (error != NULL)
 		goto done;
+	printf("worktree_checkout_files end\n");
 
 	printf("Now shut up and hack\n");
 	if (cpa.had_base_commit_ref_error)

@@ -2488,10 +2488,12 @@ find_tree_entry_for_checkout(int *entry_type, char **tree_relpath,
 			err = got_error_from_errno("strdup");
 			goto done;
 		}
+	printf("here2\n");
 		err = got_object_id_by_path(tree_id, repo,
 		    worktree->base_commit_id, worktree->path_prefix);
 		if (err)
 			goto done;
+	printf("here2\n");
 		return NULL;
 	}
 
@@ -2653,7 +2655,6 @@ got_worktree_checkout_files(struct got_worktree *worktree,
 	err = lock_worktree(worktree, LOCK_EX);
 	if (err)
 		return err;
-
 	/* Map all specified paths to in-repository trees. */
 	TAILQ_FOREACH(pe, paths, entry) {
 		tpd = malloc(sizeof(*tpd));
@@ -2662,12 +2663,14 @@ got_worktree_checkout_files(struct got_worktree *worktree,
 			goto done;
 		}
 
+	printf("here\n");
 		err = find_tree_entry_for_checkout(&tpd->entry_type,
 		    &tpd->relpath, &tpd->tree_id, pe->path, worktree, repo);
 		if (err) {
 			free(tpd);
 			goto done;
 		}
+	printf("here\n");
 
 		if (tpd->entry_type == GOT_OBJ_TYPE_BLOB) {
 			err = got_path_basename(&tpd->entry_name, pe->path);

@@ -139,7 +139,7 @@ open_loose_object(int *fd, struct got_object_id *id,
 	err = got_object_get_path(&path, id, repo);
 	if (err)
 		return err;
-	*fd = open(path, O_RDONLY | O_NOFOLLOW);
+	*fd = openat(got_repo_get_path_git_dir_fd(repo), path, O_RDONLY | O_NOFOLLOW);
 	if (*fd == -1) {
 		err = got_error_from_errno2("open", path);
 		goto done;
@@ -606,9 +606,11 @@ open_commit(struct got_commit_object **commit,
 	} else if (err->code == GOT_ERR_NO_OBJ) {
 		int fd;
 
+		printf("here5\n");
 		err = open_loose_object(&fd, id, repo);
 		if (err)
 			return err;
+		printf("here5\n");
 		err = read_commit_privsep(commit, fd, repo);
 	}
 
@@ -630,7 +632,7 @@ got_object_open_as_commit(struct got_commit_object **commit,
 		(*commit)->refcnt++;
 		return NULL;
 	}
-
+	printf("here4\n");
 	return open_commit(commit, repo, id, 0);
 }
 
@@ -1646,9 +1648,11 @@ got_object_id_by_path(struct got_object_id **id, struct got_repository *repo,
 
 	*id = NULL;
 
+	printf("here3\n");
 	err = got_object_open_as_commit(&commit, repo, commit_id);
 	if (err)
 		goto done;
+	printf("here3\n");
 
 	/* Handle opening of root of commit's tree. */
 	if (got_path_is_root_dir(path)) {

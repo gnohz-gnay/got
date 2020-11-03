@@ -971,14 +971,11 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 	/* No luck. Search the filesystem. */
 
 	path_packdir = GOT_OBJECTS_PACK_DIR;
-	const char *path_packdir2 = got_repo_get_path_objects_pack(repo);
 	if (path_packdir == NULL)
 		return got_error_from_errno("got_repo_get_path_objects_pack");
 
-	printf("repo: %s\n", got_repo_get_path_git_dir(repo));
 	int fd = openat(got_repo_get_path_git_dir_fd(repo), path_packdir, O_DIRECTORY); 
 	packdir = fdopendir(fd);
-	//packdir = opendir(path_packdir2);
 
 	if (packdir == NULL) {
 		if (errno == ENOENT)

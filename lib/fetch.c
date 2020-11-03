@@ -723,7 +723,6 @@ got_fetch_pack(struct got_object_id **pack_hash, struct got_pathlist_head *refs,
 		err = got_error_from_errno("socketpair");
 		goto done;
 	}
-
 	idxpid = fork();
 	if (idxpid == -1) {
 		err= got_error_from_errno("fork");
