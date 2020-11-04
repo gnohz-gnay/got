@@ -2738,6 +2738,7 @@ cmd_checkout(int argc, char *argv[])
 
 	if (caph_enter() < 0)
 		err(1, "caph_enter");
+	printf("entered capability mode\n");
 
 	error = got_ref_open(&head_ref, repo, branch_name, 0);
 	if (error != NULL)
@@ -2746,13 +2747,10 @@ cmd_checkout(int argc, char *argv[])
 	error = got_worktree_init(worktree_fd, worktree_path, head_ref, path_prefix, repo);
 	if (error != NULL && !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 		goto done;
-	printf("worktree_init done\n");
 
-	printf("worktree_open start\n");
 	error = got_worktree_open(&worktree, worktree_path);
 	if (error != NULL)
 		goto done;
-	printf("worktree_open end\n");
 
 	error = got_worktree_match_path_prefix(&same_path_prefix, worktree,
 	    path_prefix);
@@ -2799,12 +2797,10 @@ cmd_checkout(int argc, char *argv[])
 		goto done;
 	cpa.worktree_path = worktree_path;
 	cpa.had_base_commit_ref_error = 0;
-	printf("worktree_checkout_files begin\n");
 	error = got_worktree_checkout_files(worktree, &paths, repo,
 	    checkout_progress, &cpa, check_cancelled, NULL);
 	if (error != NULL)
 		goto done;
-	printf("worktree_checkout_files end\n");
 
 	printf("Now shut up and hack\n");
 	if (cpa.had_base_commit_ref_error)

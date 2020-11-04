@@ -67,9 +67,13 @@ main(int argc, char *argv[])
 	struct imsgbuf ibuf;
 	size_t datalen;
 
+	for (;;) {}
+
 	signal(SIGINT, catch_sigint);
 
 	imsg_init(&ibuf, GOT_IMSG_FD_CHILD);
+
+	fprintf(stdout, ">test\n");
 
 #ifndef PROFILE
 	/* revoke access to most system calls */
@@ -79,8 +83,6 @@ main(int argc, char *argv[])
 		return 1;
 	}
 #endif
-	fprintf(stdout, ">test\n");
-
 	for (;;) {
 		if (sigint_received) {
 			err = got_error(GOT_ERR_CANCELLED);

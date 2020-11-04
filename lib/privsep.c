@@ -2261,6 +2261,7 @@ static nvlist_t *helper_nv;
 static int rtld_fd;
 static int lib_fd;
 static int usr_lib_fd;
+static int openbsd_compat_fd;
 
 const struct got_error *
 got_privsep_unveil_exec_helpers(void)
@@ -2301,7 +2302,11 @@ got_privsep_unveil_exec_helpers(void)
 		return got_error_from_errno("open");
 
 	usr_lib_fd = open("/usr/lib", O_DIRECTORY);
-	if (lib_fd == -1)
+	if (usr_lib_fd == -1)
+		return got_error_from_errno("open");
+
+	openbsd_compat_fd = open("/usr/obj/usr/home/yzhong/src/got/openbsd-compat", O_DIRECTORY);
+	if (openbsd_compat_fd == -1)
 		return got_error_from_errno("open");
 
 	return NULL;
@@ -2324,15 +2329,6 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
 		_exit(1);
 	}
-
-	int min = MIN(GOT_IMSG_FD_CHILD, fd);
-	int max = GOT_IMSG_FD_CHILD + fd - min; 
-	/*
-	if (closefrom(max + 1) == -1) {
-		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
-		_exit(1);
-	}
-	*/
 	/* NOTE need to ask about this part
 	if (closefrom(GOT_IMSG_FD_CHILD + 1) == -1) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
@@ -2341,12 +2337,12 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 	*/
 
 	asprintf(&fd_buf, "%d", fd);
-	asprintf(&library_path_fds_buf, "%d:%d", lib_fd, usr_lib_fd);
+	asprintf(&library_path_fds_buf, "%d:%d:%d", lib_fd, usr_lib_fd, openbsd_compat_fd);
 
 	setenv("LD_LIBRARY_PATH_FDS", library_path_fds_buf, 1);
 
 	argv = malloc(sizeof(char *) * 7);
-	argv[0] = path;
+	argv[0] = "/libexec/ld-elf.so.1";
 	argv[1] = "-f";
 	argv[2] = fd_buf; 
 	argv[3] = "--";

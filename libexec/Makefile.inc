@@ -1,5 +1,5 @@
 .include "../Makefile.inc"
 
-BINDIR = ${PREFIX}/libexec
+BINDIR = ${PREFIX}/usr/libexec
 
 MAN =
