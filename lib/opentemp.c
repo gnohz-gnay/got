@@ -92,6 +92,37 @@ got_opentemp_named(char **path, FILE **outfile, const char *basepath)
 }
 
 const struct got_error *
+got_opentemp_named_REPLACE(int dir_fd, char **path, FILE **outfile, const char *basepath)
+{
+	const struct got_error *err = NULL;
+	int fd;
+
+	*outfile = NULL;
+
+	if (asprintf(path, "%s-XXXXXX", basepath) == -1) {
+		*path = NULL;
+		return got_error_from_errno("asprintf");
+	}
+
+	fd = mkostempsat(dir_fd, *path, 0, 0);
+	if (fd == -1) {
+		err = got_error_from_errno2("mkostempsat", *path);
+		free(*path);
+		*path = NULL;
+		return err;
+	}
+
+	*outfile = fdopen(fd, "w+");
+	if (*outfile == NULL) {
+		err = got_error_from_errno2("fdopen", *path);
+		free(*path);
+		*path = NULL;
+	}
+
+	return err;
+}
+
+const struct got_error *
 got_opentemp_named_fd(char **path, int *outfd, const char *basepath)
 {
 	const struct got_error *err = NULL;

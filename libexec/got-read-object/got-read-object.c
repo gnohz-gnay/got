@@ -70,7 +70,6 @@ main(int argc, char *argv[])
 	signal(SIGINT, catch_sigint);
 
 	imsg_init(&ibuf, GOT_IMSG_FD_CHILD);
-	fprintf(stderr, "test test test\n");
 
 #ifndef PROFILE
 	/* revoke access to most system calls */
@@ -80,6 +79,7 @@ main(int argc, char *argv[])
 		return 1;
 	}
 #endif
+	fprintf(stdout, ">test\n");
 
 	for (;;) {
 		if (sigint_received) {
@@ -132,5 +132,6 @@ done:
 	}
 	if (close(GOT_IMSG_FD_CHILD) != 0 && err == NULL)
 		err = got_error_from_errno("close");
+	fprintf(stdout, ">test\n");
 	return err ? 1 : 0;
 }

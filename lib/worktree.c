@@ -81,20 +81,20 @@ create_meta_file(int worktree_fd, const char *name, const char *content)
 }
 
 static const struct got_error *
-update_meta_file(const char *path_got, const char *name, const char *content)
+update_meta_file(int worktree_fd, const char *name, const char *content)
 {
 	const struct got_error *err = NULL;
 	FILE *tmpfile = NULL;
 	char *tmppath = NULL;
 	char *path = NULL;
 
-	if (asprintf(&path, "%s/%s", path_got, name) == -1) {
+	if (asprintf(&path, "%s/%s", GOT_WORKTREE_GOT_DIR, name) == -1) {
 		err = got_error_from_errno("asprintf");
 		path = NULL;
 		goto done;
 	}
 
-	err = got_opentemp_named(&tmppath, &tmpfile, path);
+	err = got_opentemp_named_REPLACE(worktree_fd, &tmppath, &tmpfile, path);
 	if (err)
 		goto done;
 
@@ -106,9 +106,9 @@ update_meta_file(const char *path_got, const char *name, const char *content)
 		}
 	}
 
-	if (rename(tmppath, path) != 0) {
+	if (renameat(worktree_fd, tmppath, worktree_fd, path) != 0) {
 		err = got_error_from_errno3("rename", tmppath, path);
-		unlink(tmppath);
+		unlinkat(worktree_fd, tmppath, 0);
 		goto done;
 	}
 
@@ -184,7 +184,7 @@ done:
 }
 
 static const struct got_error *
-write_head_ref(const char *path_got, struct got_reference *head_ref)
+write_head_ref(int worktree_fd, struct got_reference *head_ref)
 {
 	const struct got_error *err = NULL;
 	char *refstr = NULL;
@@ -198,7 +198,9 @@ write_head_ref(const char *path_got, struct got_reference *head_ref)
 		if (refstr == NULL)
 			return got_error_from_errno("strdup");
 	}
-	err = update_meta_file(path_got, GOT_WORKTREE_HEAD_REF, refstr);
+	printf("update_meta_file\n");
+	err = update_meta_file(worktree_fd, GOT_WORKTREE_HEAD_REF, refstr);
+	printf("update_meta_file\n");
 	free(refstr);
 	return err;
 }
@@ -258,7 +260,8 @@ got_worktree_init(int fd, const char *path, struct got_reference *head_ref,
 		goto done;
 
 	/* Write the HEAD reference. */
-	err = write_head_ref(path_got, head_ref);
+	printf("writing HEAD reference...\n");
+	err = write_head_ref(fd, head_ref);
 	if (err)
 		goto done;
 

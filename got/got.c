@@ -2704,7 +2704,7 @@ cmd_checkout(int argc, char *argv[])
 	got_path_strip_trailing_slashes(repo_path);
 	got_path_strip_trailing_slashes(worktree_path);
 
-	error = apply_unveil(repo_path, 0, worktree_path); //used to be get_path after got_repo_open
+	error = apply_unveil(repo_path, 0, worktree_path); //NOTE used to be get_path after got_repo_open
 	if (error)
 		goto done;
 
@@ -2713,13 +2713,8 @@ cmd_checkout(int argc, char *argv[])
 		goto done;
 
 	/* Pre-create work tree path for unveil(2) */
-	int worktree_fd = open(worktree_path, O_DIRECTORY);
-	if (worktree_fd == -1) {
-		error = got_error_from_errno2("open", worktree_path);
-		goto done;
-	}
-
 	error = got_path_mkdir(worktree_path);
+	int worktree_fd = open(worktree_path, O_DIRECTORY);
 	if (error) {
 		if (!(error->code == GOT_ERR_ERRNO && errno == EISDIR) &&
 		    !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
@@ -2741,8 +2736,8 @@ cmd_checkout(int argc, char *argv[])
 	free(worktree_path);
 	worktree_path = worktree_path_abs;
 
-	//if (caph_enter() < 0)
-	//	err(1, "caph_enter");
+	if (caph_enter() < 0)
+		err(1, "caph_enter");
 
 	error = got_ref_open(&head_ref, repo, branch_name, 0);
 	if (error != NULL)
@@ -2751,12 +2746,13 @@ cmd_checkout(int argc, char *argv[])
 	error = got_worktree_init(worktree_fd, worktree_path, head_ref, path_prefix, repo);
 	if (error != NULL && !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 		goto done;
+	printf("worktree_init done\n");
 
 	printf("worktree_open start\n");
 	error = got_worktree_open(&worktree, worktree_path);
-	printf("worktree_open end\n");
 	if (error != NULL)
 		goto done;
+	printf("worktree_open end\n");
 
 	error = got_worktree_match_path_prefix(&same_path_prefix, worktree,
 	    path_prefix);

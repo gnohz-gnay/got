@@ -2258,6 +2258,9 @@ got_privsep_recv_traversed_commits(struct got_commit_object **changed_commit,
 }
 
 static nvlist_t *helper_nv;
+static int rtld_fd;
+static int lib_fd;
+static int usr_lib_fd;
 
 const struct got_error *
 got_privsep_unveil_exec_helpers(void)
@@ -2285,9 +2288,22 @@ got_privsep_unveil_exec_helpers(void)
 			continue;
 		return got_error_from_errno2("unveil", helpers[i]);
 		*/
-		fd = open(helpers[i], O_EXEC);
+		fd = open(helpers[i], O_RDONLY);
 		nvlist_move_descriptor(helper_nv, helpers[i], fd);
 	}
+
+	rtld_fd = open("/libexec/ld-elf.so.1", O_RDONLY);
+	if (rtld_fd == -1)
+		return got_error_from_errno("open"); 
+
+	lib_fd = open("/lib", O_DIRECTORY);
+	if (lib_fd == -1)
+		return got_error_from_errno("open");
+
+	usr_lib_fd = open("/usr/lib", O_DIRECTORY);
+	if (lib_fd == -1)
+		return got_error_from_errno("open");
+
 	return NULL;
 }
 
@@ -2296,6 +2312,8 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 {
 	const char **argv;
 	int fd = nvlist_get_descriptor(helper_nv, path);
+	char *fd_buf;
+	char *library_path_fds_buf;
 
 	if (close(imsg_fds[0]) != 0) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
@@ -2309,10 +2327,12 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 
 	int min = MIN(GOT_IMSG_FD_CHILD, fd);
 	int max = GOT_IMSG_FD_CHILD + fd - min; 
+	/*
 	if (closefrom(max + 1) == -1) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
 		_exit(1);
 	}
+	*/
 	/* NOTE need to ask about this part
 	if (closefrom(GOT_IMSG_FD_CHILD + 1) == -1) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
@@ -2320,14 +2340,23 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 	}
 	*/
 
-	argv = malloc(sizeof(char *) * 3);
+	asprintf(&fd_buf, "%d", fd);
+	asprintf(&library_path_fds_buf, "%d:%d", lib_fd, usr_lib_fd);
+
+	setenv("LD_LIBRARY_PATH_FDS", library_path_fds_buf, 1);
+
+	argv = malloc(sizeof(char *) * 7);
 	argv[0] = path;
-	argv[1] = repo_path;
-	argv[2] = (char *) NULL;
+	argv[1] = "-f";
+	argv[2] = fd_buf; 
+	argv[3] = "--";
+	argv[4] = path;
+	argv[5] = repo_path;
+	argv[6] = (char *) NULL;
 
 	printf("starting child... %s\n", path);
 
-	if (fexecve(fd, __DECONST(char **, argv), environ) == -1) {
+	if (fexecve(rtld_fd, __DECONST(char **, argv), environ) == -1) {
 		fprintf(stderr, "%s: %s: %s\n", getprogname(), path,
 		    strerror(errno));
 		_exit(1);
