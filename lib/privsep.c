@@ -2304,11 +2304,11 @@ got_privsep_unveil_exec_helpers(void)
 	usr_lib_fd = open("/usr/lib", O_DIRECTORY);
 	if (usr_lib_fd == -1)
 		return got_error_from_errno("open");
-
+	/*
 	openbsd_compat_fd = open("/usr/obj/usr/home/yzhong/src/got/openbsd-compat", O_DIRECTORY);
 	if (openbsd_compat_fd == -1)
 		return got_error_from_errno("open");
-
+	*/
 	return NULL;
 }
 
@@ -2335,13 +2335,20 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 		_exit(1);
 	}
 	*/
-
+	
+	/*
 	asprintf(&fd_buf, "%d", fd);
 	asprintf(&library_path_fds_buf, "%d:%d:%d", lib_fd, usr_lib_fd, openbsd_compat_fd);
 
 	setenv("LD_LIBRARY_PATH_FDS", library_path_fds_buf, 1);
+	setenv("LD_DEBUG", "1", 1);
+	*/
 
 	argv = malloc(sizeof(char *) * 7);
+	argv[0] = path;
+	argv[1] = repo_path;
+	argv[2] = (char *) NULL;
+	/*
 	argv[0] = "/libexec/ld-elf.so.1";
 	argv[1] = "-f";
 	argv[2] = fd_buf; 
@@ -2349,10 +2356,11 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 	argv[4] = path;
 	argv[5] = repo_path;
 	argv[6] = (char *) NULL;
+	*/
 
 	printf("starting child... %s\n", path);
 
-	if (fexecve(rtld_fd, __DECONST(char **, argv), environ) == -1) {
+	if (fexecve(fd, __DECONST(char **, argv), environ) == -1) {
 		fprintf(stderr, "%s: %s: %s\n", getprogname(), path,
 		    strerror(errno));
 		_exit(1);
