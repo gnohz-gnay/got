@@ -198,30 +198,27 @@ got_repo_get_gitconfig_remotes(int *nremotes,
 static int
 is_git_repo(struct got_repository *repo)
 {
-	const char *path_git = got_repo_get_path_git_dir(repo);
-	char *path_objects = got_repo_get_path_objects(repo);
-	char *path_refs = got_repo_get_path_refs(repo);
-	char *path_head = get_path_head(repo);
+	int git_fd = got_repo_get_path_git_dir_fd(repo);
 	int ret = 0;
 	struct stat sb;
 	struct got_reference *head_ref;
 
-	if (lstat(path_git, &sb) == -1)
+	if (fstat(git_fd, &sb) == -1)
 		goto done;
 	if (!S_ISDIR(sb.st_mode))
 		goto done;
 
-	if (lstat(path_objects, &sb) == -1)
+	if (fstatat(git_fd, GOT_OBJECTS_DIR, &sb, 0) == -1)
 		goto done;
 	if (!S_ISDIR(sb.st_mode))
 		goto done;
 
-	if (lstat(path_refs, &sb) == -1)
+	if (fstatat(git_fd, GOT_REFS_DIR, &sb, 0) == -1)
 		goto done;
 	if (!S_ISDIR(sb.st_mode))
 		goto done;
 
-	if (lstat(path_head, &sb) == -1)
+	if (fstatat(git_fd, GOT_HEAD_FILE, &sb, 0) == -1)
 		goto done;
 	if (!S_ISREG(sb.st_mode))
 		goto done;
@@ -233,9 +230,6 @@ is_git_repo(struct got_repository *repo)
 
 	ret = 1;
 done:
-	free(path_objects);
-	free(path_refs);
-	free(path_head);
 	return ret;
 
 }
