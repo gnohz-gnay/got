@@ -25,17 +25,31 @@
 #include "got_opentemp.h"
 #include "got_error.h"
 
+#include <fcntl.h>
+
+static int tempdir_fd;
+
+const struct got_error *
+got_opentempdir(void)
+{
+	tempdir_fd = open(GOT_TMPDIR_STR, O_DIRECTORY);
+	if (tempdir_fd == -1)
+		return got_error_from_errno("open");
+	return NULL;
+}
+
 int
 got_opentempfd(void)
 {
 	char name[PATH_MAX];
 	int fd;
 
-	if (strlcpy(name, GOT_TMPDIR_STR "/got.XXXXXXXX", sizeof(name))
+	if (strlcpy(name, "got.XXXXXXXX", sizeof(name))
 	    >= sizeof(name))
 		return -1;
 
-	fd = mkstemp(name);
+	printf("%s\n", name);
+	fd = mkostempsat(tempdir_fd, name, 0, 0);
 	if (fd != -1)
 		unlink(name);
 	return fd;

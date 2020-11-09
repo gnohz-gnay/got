@@ -23,6 +23,9 @@
 #define GOT_STRINGVAL_TMP(x) GOT_STRINGIFY_TMP(x)
 #define GOT_TMPDIR_STR GOT_STRINGVAL_TMP(GOT_TMPDIR)
 
+//NOTE: write description
+const struct got_error *got_opentempdir(void);
+
 /* Open a file descriptor to a new temporary file for writing.
  * The file is not visible in the filesystem. */
 int got_opentempfd(void);
