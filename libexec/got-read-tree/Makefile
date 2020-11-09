@@ -6,7 +6,7 @@ PROG=		got-read-tree
 SRCS=		got-read-tree.c error.c inflate.c object_parse.c \
 		path.c privsep.c sha1.c
 
-CPPFLAGS = -I${.CURDIR}/../../include -I${.CURDIR}/../../lib
+CPPFLAGS = -I${.CURDIR}/../../include -I${.CURDIR}/../../lib -static
 LDFLAGS += -L${.OBJDIR}/../../openbsd-compat
 LIBADD = util z
 
