@@ -318,6 +318,8 @@ got_path_mkdir(const char *abspath)
 {
 	const struct got_error *err = NULL;
 
+	printf("got_path_mkdir\n");
+
 	if (mkdir(abspath, GOT_DEFAULT_DIR_MODE) == -1) {
 		if (errno == ENOENT) {
 			err = make_parent_dirs(abspath);
@@ -327,6 +329,29 @@ got_path_mkdir(const char *abspath)
 				err = got_error_from_errno2("mkdir", abspath);
 		} else
 			err = got_error_from_errno2("mkdir", abspath);
+	}
+
+done:
+	return err;
+}
+
+const struct got_error *
+got_path_mkdirat(int fd, const char *path)
+{
+	const struct got_error *err = NULL;
+
+	printf("got_path_mkdir\n");
+
+	if (mkdirat(fd, path, GOT_DEFAULT_DIR_MODE) == -1) {
+		if (errno == ENOENT) {
+			printf("MAKE_PARENT_DIRS - BROKEN\n");
+			err = make_parent_dirs(path); //NOTE: this doesn't work
+			if (err)
+				goto done;
+			if (mkdirat(fd, path, GOT_DEFAULT_DIR_MODE) == -1)
+				err = got_error_from_errno2("mkdirat", path);
+		} else
+			err = got_error_from_errno2("mkdirat", path);
 	}
 
 done:
