@@ -24,6 +24,7 @@
 struct got_lockfile {
 	char *path;
 	char *locked_path;
+	int root_fd;
 	int fd;
 };
 

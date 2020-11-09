@@ -33,7 +33,7 @@
 #include "got_lib_lockfile.h"
 
 const struct got_error *
-got_lockfile_lock(struct got_lockfile **lf, int fd, const char *path)
+got_lockfile_lock(struct got_lockfile **lf, int root_fd, const char *path)
 {
 	const struct got_error *err = NULL;
 	int attempts = 5;
@@ -42,6 +42,8 @@ got_lockfile_lock(struct got_lockfile **lf, int fd, const char *path)
 	if (*lf == NULL)
 		return got_error_from_errno("calloc");
 	(*lf)->fd = -1;
+
+	(*lf)->root_fd = root_fd;
 
 	(*lf)->locked_path = strdup(path);
 	if ((*lf)->locked_path == NULL) {
@@ -55,7 +57,7 @@ got_lockfile_lock(struct got_lockfile **lf, int fd, const char *path)
 	}
 
 	do {
-		(*lf)->fd = openat(fd, (*lf)->path,
+		(*lf)->fd = openat(root_fd, (*lf)->path,
 		    O_RDONLY | O_CREAT | O_EXCL | O_EXLOCK,
 		    GOT_DEFAULT_FILE_MODE);
 		if ((*lf)->fd != -1)
@@ -82,8 +84,9 @@ got_lockfile_unlock(struct got_lockfile *lf)
 {
 	const struct got_error *err = NULL;
 
-	if (lf->path && lf->fd != -1 && unlink(lf->path) != 0)
-		err = got_error_from_errno("unlink");
+	printf("%s\n", lf->path);
+	if (lf->path && lf->fd != -1 && unlinkat(lf->root_fd, lf->path, 0) != 0)
+		err = got_error_from_errno("unlinkat");
 	if (lf->fd != -1 && close(lf->fd) != 0 && err == NULL)
 		err = got_error_from_errno("close");
 	free(lf->path);
