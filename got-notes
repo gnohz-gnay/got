@@ -1,0 +1,120 @@
+function naming: got_path_mkdir() inside /got/lib/path.c
+
+In each cmd_X function in got.c, the structure is:
+
+parse options
+pledge something
+do some more setup
+run apply_unveil
+call function that actually does work (does not contain pledge or unveil)
+
+Apply_unveil:
+gmon.out, rwc
+repo_path, repo_read_only ? r : rwc
+worktree_path, rwc
+tmpdir, rwc
+got_privsep_unveil_exec_helpers -> unveils helper programs in libexec with x
+-> currently they use fork, exec to run the read helpers (for security)
+-> replace these with a fileargs, then fork + fexecve
+
+path.c
+-> simple approach, like in sort.c, where we have global fds that functions
+   use openat to use can't work here. Contains two kinds of functions: ones
+   that take in a path and open it and do stuff, and ones that take in a path
+   and does string manipulation. We can change the former to take in fds 
+   instead, perhaps. 
+-> consider making alt functions like got_path_mkdir() => got_path_mkdirat()
+
+GOT_LIBEXECDIR - tells got where the libexec files are. I'll have to point this
+somewhere else for now, by setting the env variable, and change it back later
+
+repo.c
+-> write_tree mutually recursive with import_subdir - makes sense
+
+got_repo_import
+-> want one file descriptor, the base to-be-imported directory. Rest controlled
+with relative paths
+
+"
+Got's high-level repo_open and worktree_open operations should be able
+to accommodate file descriptors for relevant directories. Do not be afraid
+of changing APIs anywhere in the Got tree if it helps. None of the APIs are
+considered stable yet, not even those in the public include/ directory.
+
+The work tree status walk has already been partly converted to openat()
+and friends, and there is some work left to do here.
+My idea was to ensure that Got commands which are in progress will not
+operate on new versions of files or directories that happen to be replaced
+by third party tools while Got is operating on the work tree.
+So instead of traversing directories by path, we traverse directory entry
+names associated with a directory file descriptor.
+"
+
+After fexecve finishes, all memory allocated to the process is discarded,
+so you don't have to worry about memory leaks when making the argv to call
+fexecve.
+
+Current exec_child strategy: make an nvlist of paths and fds, and initialize
+it in the init function. Do a lookup for executing. Also, we need to call the
+dynamic linker instead of the actual program: ld-elf.so.1. Look at the
+Capsicumizer to see how they do it. Also, LD_LIBRARY_PATH_FDS for loading
+the necessary libraries. Ed says loading /lib/ and /usr/lib/ is good enough.
+
+issue: exec_child not executing child right if kern.trap_enotcap is set. 
+If I add an infinite loop to the libexec, running it with the trap=0 hangs
+the program, but it just says "peer process closed pipe" with trap=1, showing
+that the program isn't even being run. There must be some sort of include 
+issue, or maybe the linker has a bug?
+
+The linker looks at config files. I don't really know if it's fixable...
+turn on LD_DEBUG in the environment to look at it. 
+
+I'm trying to fexecve a statically linked program now, and I get a similar problem - 
+it still doesn't manage to get into the program if kern.trap_enotcap=1.
+I looked at the core dump and the issue seems to be in jemalloc:
+
+* thread #1, name = 'got-read-object', stop reason = signal SIGTRAP
+  * frame #0: 0x000000000027f08a got-read-object`__sys_readlink at readlink.S:4
+    frame #1: 0x000000000027afeb got-read-object`malloc_conf_init_helper at jemalloc_jemalloc.c:984:13
+    frame #2: 0x000000000027afd1 got-read-object`malloc_conf_init_helper(sc_data=0x0000000000000000, bin_shard_sizes=0x0000000000000000, initial_call=true, opts_cache=0x00007fffffffe800, buf=<unavailable>) at jemalloc_jemalloc.c:1042
+    frame #3: 0x000000000027aa79 got-read-object`malloc_init_hard_a0_locked [inlined] malloc_conf_init(sc_data=0x00007fffffffca40, bin_shard_sizes=0x00007fffffffc9b0) at jemalloc_jemalloc.c:1449:2
+    frame #4: 0x000000000027aa4f got-read-object`malloc_init_hard_a0_locked at jemalloc_jemalloc.c:1509
+    frame #5: 0x0000000000273528 got-read-object`a0ialloc [inlined] malloc_init_hard_a0 at jemalloc_jemalloc.c:1572:8
+    frame #6: 0x00000000002734d6 got-read-object`a0ialloc [inlined] malloc_init_a0 at jemalloc_jemalloc.c:220
+    frame #7: 0x00000000002734d6 got-read-object`a0ialloc(size=6303, zero=false, is_internal=false) at jemalloc_jemalloc.c:240
+    frame #8: 0x000000000024c06e got-read-object`__libc_allocate_tls [inlined] malloc_aligned(size=6280, align=16) at tls.c:134:8
+    frame #9: 0x000000000024c054 got-read-object`__libc_allocate_tls(oldtls=0x0000000000000000, tcbsize=<unavailable>, tcbalign=<unavailable>) at tls.c:358
+    frame #10: 0x000000000024c230 got-read-object`_init_tls at tls.c:468:8
+    frame #11: 0x000000000022e0e4 got-read-object`_start(ap=<unavailable>, cleanup=<unavailable>) at crt1_c.c:65:3
+
+and in jemalloc.c:
+
+                 /*
+                  * Try to use the contents of the "/etc/malloc.conf" symbolic
+                  * link's name.
+                  */
+#ifndef JEMALLOC_READLINKAT
+                 linklen = readlink(linkname, buf, PATH_MAX);
+#else
+                 linklen = readlinkat(AT_FDCWD, linkname, buf, PATH_MAX);
+#endif
+                 if (linklen == -1) {
+                         /* No configuration specified. */
+                         linklen = 0;
+                         /* Restore errno. */
+                         set_errno(saved_errno);
+                 }
+#endif
+
+They try calling readlink and if it gives an error they fix 
+it and move on, but obviously that doesn't work if the readlink 
+crashes the program
+So I'm trying to temporarily change jemalloc to "fix" this, 
+but looking in /contrib/jemalloc there doesn't seem to be any way to make it?
+
+In got, they try opening progressively higher-up directories, to see if they
+are repositories. However, we can't really do that in Capability mode. probably
+will need to find it before entering capability mode, then just try once when
+actually inside. 
+
+Remember to add the cap_getmode() in jemalloc
