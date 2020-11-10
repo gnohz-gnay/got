@@ -257,9 +257,9 @@ static char *
 get_refs_dir_path(struct got_repository *repo, const char *refname)
 {
 	if (is_well_known_ref(refname) || strncmp(refname, "refs/", 5) == 0)
-		return strdup(got_repo_get_path_git_dir(repo));
-
-	return got_repo_get_path_refs(repo);
+		return strdup(".");
+	
+	return strdup(got_repo_get_path_refs(repo)); //NOTE: fix those functions. Repo doesn't do anything
 }
 
 static int
@@ -1083,6 +1083,9 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 	FILE *f = NULL;
 	size_t n;
 	struct stat sb;
+	int git_fd;
+
+	git_fd = got_repo_get_path_git_dir_fd(repo);
 
 	path_refs = get_refs_dir_path(repo, name);
 	if (path_refs == NULL) {
@@ -1095,7 +1098,7 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 		goto done;
 	}
 
-	err = got_opentemp_named(&tmppath, &f, path);
+	err = got_opentemp_named_REPLACE(git_fd, &tmppath, &f, path);
 	if (err) {
 		char *parent;
 		if (!(err->code == GOT_ERR_ERRNO && errno == ENOENT))
@@ -1134,14 +1137,14 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 
 	if (ref->lf == NULL) {
 		printf("NEED TO TEST %s\n", path);
-		err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), path);
+		err = got_lockfile_lock(&lf, git_fd, path);
 		if (err)
 			goto done;
 	}
 
 	/* XXX: check if old content matches our expectations? */
 
-	if (stat(path, &sb) != 0) {
+	if (fstatat(git_fd, path, &sb, 0) != 0) {
 		if (errno != ENOENT) {
 			err = got_error_from_errno2("stat", path);
 			goto done;
@@ -1154,8 +1157,8 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 		goto done;
 	}
 
-	if (rename(tmppath, path) != 0) {
-		err = got_error_from_errno3("rename", tmppath, path);
+	if (renameat(git_fd, tmppath, git_fd, path) != 0) {
+		err = got_error_from_errno3("renameat", tmppath, path);
 		goto done;
 	}
 	free(tmppath);
@@ -1170,8 +1173,8 @@ done:
 	free(path_refs);
 	free(path);
 	if (tmppath) {
-		if (unlink(tmppath) != 0 && err == NULL)
-			err = got_error_from_errno2("unlink", tmppath);
+		if (unlinkat(git_fd, tmppath, 0) != 0 && err == NULL)
+			err = got_error_from_errno2("unlinkat", tmppath);
 		free(tmppath);
 	}
 	return err ? err : unlock_err;

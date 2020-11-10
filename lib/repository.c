@@ -154,7 +154,7 @@ got_repo_get_path_objects_pack(struct got_repository *repo)
 char *
 got_repo_get_path_refs(struct got_repository *repo)
 {
-	return get_path_git_child(repo, GOT_REFS_DIR);
+	return GOT_REFS_DIR;
 }
 
 char *
@@ -337,7 +337,7 @@ got_repo_get_cached_tag(struct got_repository *repo, struct got_object_id *id)
 }
 
 const struct got_error *
-open_repo(struct got_repository *repo, const char *path) //NOTE: don't like opening stuff here - but maybe we can just do the cap_rights stuff outside, in the main fn
+open_repo(struct got_repository *repo, int fd, const char *path)
 {
 	const struct got_error *err = NULL;
 
@@ -345,8 +345,8 @@ open_repo(struct got_repository *repo, const char *path) //NOTE: don't like open
 	repo->path_git_dir = strdup(path);
 	if (repo->path_git_dir == NULL)
 		return got_error_from_errno("strdup");
-	repo->path_fd = open(path, O_DIRECTORY | O_CREAT); //NOTE: spooky ordering
-	repo->path_git_dir_fd = open(repo->path_git_dir, O_DIRECTORY | O_CREAT);
+	repo->path_fd = fd; 
+	repo->path_git_dir_fd = fd;
 	if (is_git_repo(repo)) {
 		repo->path = strdup(repo->path_git_dir);
 		if (repo->path == NULL) {
@@ -363,8 +363,8 @@ open_repo(struct got_repository *repo, const char *path) //NOTE: don't like open
 		err = got_error_from_errno("asprintf");
 		goto done;
 	}
-	repo->path_fd = open(path, O_DIRECTORY | O_CREAT);
-	repo->path_git_dir_fd = open(repo->path_git_dir, O_DIRECTORY | O_CREAT);
+	repo->path_fd = fd;
+	repo->path_git_dir_fd = openat(fd, GOT_GIT_DIR, O_DIRECTORY | O_CREAT);
 	if (is_git_repo(repo)) {
 		repo->path = strdup(path);
 		if (repo->path == NULL) {
@@ -390,10 +390,11 @@ parse_gitconfig_file(int *gitconfig_repository_format_version,
     char **gitconfig_author_name, char **gitconfig_author_email,
     struct got_remote_repo **remotes, int *nremotes,
     char **gitconfig_owner, char ***extensions, int *nextensions,
-    const char *gitconfig_path)
+    int git_fd, const char *gitconfig_path)
 {
 	const struct got_error *err = NULL, *child_err = NULL;
 	int fd = -1;
+	int pd = -1;
 	int imsg_fds[2] = { -1, -1 };
 	pid_t pid;
 	struct imsgbuf *ibuf;
@@ -412,7 +413,7 @@ parse_gitconfig_file(int *gitconfig_repository_format_version,
 	if (gitconfig_owner)
 		*gitconfig_owner = NULL;
 
-	fd = open(gitconfig_path, O_RDONLY);
+	fd = openat(git_fd, gitconfig_path, O_RDONLY);
 	if (fd == -1) {
 		if (errno == ENOENT)
 			return NULL;
@@ -430,7 +431,7 @@ parse_gitconfig_file(int *gitconfig_repository_format_version,
 		goto done;
 	}
 
-	pid = fork();
+	pid = pdfork(&pd, 0);
 	if (pid == -1) {
 		err = got_error_from_errno("fork");
 		goto done;
@@ -525,7 +526,7 @@ parse_gitconfig_file(int *gitconfig_repository_format_version,
 
 	imsg_clear(ibuf);
 	err = got_privsep_send_stop(imsg_fds[0]);
-	child_err = got_privsep_wait_for_child(pid);
+	child_err = got_privsep_wait_for_child(pd);
 	if (child_err && err == NULL)
 		err = child_err;
 done:
@@ -543,33 +544,34 @@ static const struct got_error *
 read_gitconfig(struct got_repository *repo, const char *global_gitconfig_path)
 {
 	const struct got_error *err = NULL;
-	char *repo_gitconfig_path = NULL;
+	int git_fd;
 
 	if (global_gitconfig_path) {
 		/* Read settings from ~/.gitconfig. */
 		int dummy_repo_version;
+		printf("PARSE_GITCONFIG_FILE with global gitconfig path BROKEN\n");
 		err = parse_gitconfig_file(&dummy_repo_version,
 		    &repo->global_gitconfig_author_name,
 		    &repo->global_gitconfig_author_email,
-		    NULL, NULL, NULL, NULL, NULL, global_gitconfig_path);
+		    NULL, NULL, NULL, NULL, NULL, -1, global_gitconfig_path);
 		if (err)
 			return err;
 	}
 
 	/* Read repository's .git/config file. */
-	repo_gitconfig_path = got_repo_get_path_gitconfig(repo);
-	if (repo_gitconfig_path == NULL)
-		return got_error_from_errno("got_repo_get_path_gitconfig");
+	git_fd = got_repo_get_path_git_dir_fd(repo);
+	if (git_fd == -1)
+		return got_error_from_errno("got_repo_get_path_git_dir_fd");
+	GOT_GITCONFIG;
 
 	err = parse_gitconfig_file(&repo->gitconfig_repository_format_version,
 	    &repo->gitconfig_author_name, &repo->gitconfig_author_email,
 	    &repo->gitconfig_remotes, &repo->ngitconfig_remotes,
 	    &repo->gitconfig_owner, &repo->extensions, &repo->nextensions,
-	    repo_gitconfig_path);
+	    git_fd, GOT_GITCONFIG);
 	if (err)
 		goto done;
 done:
-	free(repo_gitconfig_path);
 	return err;
 }
 
@@ -577,14 +579,13 @@ static const struct got_error *
 read_gotconfig(struct got_repository *repo)
 {
 	const struct got_error *err = NULL;
-	char *gotconfig_path;
+	int git_fd;
 
-	gotconfig_path = got_repo_get_path_gotconfig(repo);
-	if (gotconfig_path == NULL)
-		return got_error_from_errno("got_repo_get_path_gotconfig");
+	git_fd = got_repo_get_path_git_dir_fd(repo);
+	if (git_fd == -1)
+		return got_error_from_errno("got_repo_get_path_git_dir_fd");
 
-	err = got_gotconfig_read(&repo->gotconfig, gotconfig_path);
-	free(gotconfig_path);
+	err = got_gotconfig_read(&repo->gotconfig, git_fd);
 	return err;
 }
 
@@ -596,7 +597,7 @@ static const char *repo_extensions[] = {
 };
 
 const struct got_error *
-got_repo_open(struct got_repository **repop, const char *path,
+got_repo_open(struct got_repository **repop, int repo_fd, const char *path,
     const char *global_gitconfig_path)
 {
 	struct got_repository *repo = NULL;
@@ -641,13 +642,19 @@ got_repo_open(struct got_repository **repop, const char *path,
 	    GOT_OBJECT_CACHE_TYPE_TAG);
 	if (err)
 		goto done;
-
-	repo_path = realpath(abspath, NULL);
+	
+	printf(">> is %s a real path?\n", abspath); //NOTE: see others like this
+	repo_path = strdup(abspath);
 	if (repo_path == NULL) {
 		err = got_error_from_errno2("realpath", abspath);
 		goto done;
 	}
+	
+	err = open_repo(repo, repo_fd, repo_path);
+	if (err != NULL && err->code != GOT_ERR_NOT_GIT_REPO)
+		goto done;
 
+	/* NOTE need to add a function that gets the right path - goes before cap_enter
 	for (;;) {
 		char *parent_path;
 
@@ -666,6 +673,7 @@ got_repo_open(struct got_repository **repop, const char *path,
 		free(repo_path);
 		repo_path = parent_path;
 	}
+	*/
 
 	err = read_gotconfig(repo);
 	if (err)
@@ -674,6 +682,8 @@ got_repo_open(struct got_repository **repop, const char *path,
 	err = read_gitconfig(repo, global_gitconfig_path);
 	if (err)
 		goto done;
+
+	printf("finished reading gitconfig\n");
 	if (repo->gitconfig_repository_format_version != 0)
 		err = got_error_path(path, GOT_ERR_GIT_REPO_FORMAT);
 	for (i = 0; i < repo->nextensions; i++) {

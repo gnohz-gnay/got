@@ -19,7 +19,7 @@ struct got_pathlist_head;
 struct got_tag_object;
 
 /* Open and close repositories. */
-const struct got_error *got_repo_open(struct got_repository**, const char *,
+const struct got_error *got_repo_open(struct got_repository**, int, const char *,
     const char *);
 const struct got_error *got_repo_close(struct got_repository*);
 

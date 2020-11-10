@@ -41,7 +41,7 @@
 #include "got_lib_gotconfig.h"
 
 const struct got_error *
-got_gotconfig_read(struct got_gotconfig **conf, const char *gotconfig_path)
+got_gotconfig_read(struct got_gotconfig **conf, int git_fd)
 {
 	const struct got_error *err = NULL, *child_err = NULL;
 	int fd = -1;
@@ -53,11 +53,11 @@ got_gotconfig_read(struct got_gotconfig **conf, const char *gotconfig_path)
 	if (*conf == NULL)
 		return got_error_from_errno("calloc");
 
-	fd = open(gotconfig_path, O_RDONLY);
+	fd = openat(git_fd, GOT_GOTCONFIG_FILENAME, O_RDONLY);
 	if (fd == -1) {
 		if (errno == ENOENT)
 			return NULL;
-		return got_error_from_errno2("open", gotconfig_path);
+		return got_error_from_errno2("open", GOT_GOTCONFIG_FILENAME);
 	}
 
 	ibuf = calloc(1, sizeof(*ibuf));
@@ -77,7 +77,7 @@ got_gotconfig_read(struct got_gotconfig **conf, const char *gotconfig_path)
 		goto done;
 	} else if (pid == 0) {
 		got_privsep_exec_child(imsg_fds, GOT_PATH_PROG_READ_GOTCONFIG,
-		    gotconfig_path);
+		    GOT_GOTCONFIG_FILENAME);
 		/* not reached */
 	}
 
@@ -121,7 +121,7 @@ done:
 	if (imsg_fds[1] != -1 && close(imsg_fds[1]) == -1 && err == NULL)
 		err = got_error_from_errno("close");
 	if (fd != -1 && close(fd) == -1 && err == NULL)
-		err = got_error_from_errno2("close", gotconfig_path);
+		err = got_error_from_errno2("close", GOT_GOTCONFIG_FILENAME);
 	if (err) {
 		got_gotconfig_free(*conf);
 		*conf = NULL;

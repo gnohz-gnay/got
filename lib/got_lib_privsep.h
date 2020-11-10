@@ -397,7 +397,7 @@ struct got_packidx;
 struct got_pathlist_head;
 
 const struct got_error *got_send_ack(pid_t);
-const struct got_error *got_privsep_wait_for_child(pid_t);
+const struct got_error *got_privsep_wait_for_child(int);
 const struct got_error *got_privsep_flush_imsg(struct imsgbuf *);
 const struct got_error *got_privsep_send_stop(int);
 const struct got_error *got_privsep_recv_imsg(struct imsg *, struct imsgbuf *,

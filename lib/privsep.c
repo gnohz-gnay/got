@@ -50,7 +50,9 @@
 #include "got_lib_pack.h"
 
 #include <sys/nv.h>
+#include <sys/event.h>
 #include <fcntl.h>
+#include <sys/procdesc.h>
 
 #ifndef MIN
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
@@ -106,18 +108,22 @@ read_imsg(struct imsgbuf *ibuf)
 	return NULL;
 }
 
+static int kq;
+
 const struct got_error *
-got_privsep_wait_for_child(pid_t pid)
+got_privsep_wait_for_child(int pd)
 {
 	int child_status;
+	struct kevent event; 
 
-	if (waitpid(pid, &child_status, 0) == -1)
-		return got_error_from_errno("waitpid");
+	EV_SET(&event, pd, EVFILT_PROCDESC, EV_ADD | EV_ENABLE, NOTE_EXIT, 0, NULL);
 
-	if (!WIFEXITED(child_status))
+	kevent(kq, &event, 1, &event, 1, NULL);
+
+	if (!WIFEXITED(event.data))
 		return got_error(GOT_ERR_PRIVSEP_DIED);
 
-	if (WEXITSTATUS(child_status) != 0)
+	if (WEXITSTATUS(event.data) != 0)
 		return got_error(GOT_ERR_PRIVSEP_EXIT);
 
 	return NULL;
@@ -2304,6 +2310,10 @@ got_privsep_unveil_exec_helpers(void)
 	usr_lib_fd = open("/usr/lib", O_DIRECTORY);
 	if (usr_lib_fd == -1)
 		return got_error_from_errno("open");
+
+	kq = kqueue();
+	if (kq == -1)
+		return got_error_from_errno("kqueue");
 	/*
 	openbsd_compat_fd = open("/usr/obj/usr/home/yzhong/src/got/openbsd-compat", O_DIRECTORY);
 	if (openbsd_compat_fd == -1)

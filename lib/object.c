@@ -1118,6 +1118,8 @@ open_blob(struct got_blob_object **blob, struct got_repository *repo,
 	size_t size, hdrlen;
 	struct stat sb;
 
+	printf("open_blob\n");
+
 	*blob = calloc(1, sizeof(**blob));
 	if (*blob == NULL)
 		return got_error_from_errno("calloc");
