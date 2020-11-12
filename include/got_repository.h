@@ -18,6 +18,9 @@ struct got_repository;
 struct got_pathlist_head;
 struct got_tag_object;
 
+//NOTE: describe
+const struct got_error *got_repo_find_git_path(char **);
+
 /* Open and close repositories. */
 const struct got_error *got_repo_open(struct got_repository**, int, const char *,
     const char *);

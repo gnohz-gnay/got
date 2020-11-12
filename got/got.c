@@ -2732,7 +2732,13 @@ cmd_checkout(int argc, char *argv[])
 	free(worktree_path);
 	worktree_path = worktree_path_abs;
 
-	int repo_fd = open(repo_path, O_DIRECTORY); //NOTE here: need to find proper path
+	printf("%s\n", repo_path);
+	error = got_repo_find_git_path(&repo_path);
+	if (error)
+		goto done;
+	printf("%s\n", repo_path);
+
+	int repo_fd = open(repo_path, O_DIRECTORY);
 
 	error = apply_unveil(repo_path, 0, worktree_path); //NOTE used to be get_path after got_repo_open
 	if (error)
