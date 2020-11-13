@@ -116,5 +116,9 @@ In got, they try opening progressively higher-up directories, to see if they
 are repositories. However, we can't really do that in Capability mode. probably
 will need to find it before entering capability mode, then just try once when
 actually inside. 
-
+-> idea: make is_git_dir just take in a fd and a path, instead of a whole repo
+   (it doesn't seem like it actually needs it). or maybe make a fake repo with
+   just what is needed. Then we can go progressively higher up, looking for the
+   repo, before we enter capability mode. 
 Remember to add the cap_getmode() in jemalloc
+

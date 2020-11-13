@@ -26,15 +26,23 @@
 #include "got_error.h"
 
 #include <fcntl.h>
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
 
 static int tempdir_fd;
 
 const struct got_error *
 got_opentempdir(void)
 {
+	cap_rights_t rights;
+
 	tempdir_fd = open(GOT_TMPDIR_STR, O_DIRECTORY);
 	if (tempdir_fd == -1)
 		return got_error_from_errno("open");
+	cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_LOOKUP, CAP_CREATE,
+	    CAP_UNLINKAT, CAP_FSTAT, CAP_SEEK);
+	if (caph_rights_limit(tempdir_fd, &rights) < 0)
+		return got_error_from_errno("caph_rights_limit");
 	return NULL;
 }
 
@@ -48,10 +56,11 @@ got_opentempfd(void)
 	    >= sizeof(name))
 		return -1;
 
-	printf("%s\n", name);
+	printf("here\n");
 	fd = mkostempsat(tempdir_fd, name, 0, 0);
+	printf("here\n");
 	if (fd != -1)
-		unlink(name);
+		unlinkat(tempdir_fd, name, 0);
 	return fd;
 }
 

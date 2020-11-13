@@ -376,9 +376,9 @@ cmd_init(int argc, char *argv[])
 		goto done;
 
 	repo_fd = open(repo_path, O_CREAT | O_DIRECTORY);
-	
-	//if (caph_enter() < 0)
-	//	err(1, "cap_enter");
+
+	if (caph_enter() < 0)
+		err(1, "cap_enter");
 
 	error = apply_unveil(repo_path, 0, NULL);
 	if (error)
@@ -2623,6 +2623,7 @@ cmd_checkout(int argc, char *argv[])
 	int ch, same_path_prefix, allow_nonempty = 0;
 	struct got_pathlist_head paths;
 	struct got_checkout_progress_arg cpa;
+	cap_rights_t rights;
 
 	TAILQ_INIT(&paths);
 
@@ -2732,15 +2733,23 @@ cmd_checkout(int argc, char *argv[])
 	free(worktree_path);
 	worktree_path = worktree_path_abs;
 
-	printf("%s\n", repo_path);
+	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET,
+	    CAP_SEEK, CAP_CREATE, CAP_READ, CAP_WRITE, CAP_MKDIRAT, CAP_UNLINKAT, CAP_FLOCK,
+	    CAP_FSYNC, CAP_FCHMOD);
+	if (caph_rights_limit(worktree_fd, &rights) < 0)
+		err(1, "caph_rights_limit");
+
 	error = got_repo_find_git_path(&repo_path);
 	if (error)
 		goto done;
-	printf("%s\n", repo_path);
 
 	int repo_fd = open(repo_path, O_DIRECTORY);
+	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET,
+	    CAP_SEEK, CAP_CREATE, CAP_READ, CAP_WRITE, CAP_UNLINKAT, CAP_FLOCK, CAP_FCHMOD);
+	if (caph_rights_limit(repo_fd, &rights) < 0)
+		err(1, "caph_rights_limit");
 
-	error = apply_unveil(repo_path, 0, worktree_path); //NOTE used to be get_path after got_repo_open
+	error = apply_unveil(repo_path, 0, worktree_path);
 	if (error)
 		goto done;
 
@@ -2751,6 +2760,8 @@ cmd_checkout(int argc, char *argv[])
 	if (caph_enter() < 0)
 		err(1, "caph_enter");
 
+	printf("entered capability mode\n");
+
 	error = got_repo_open(&repo, repo_fd, repo_path, NULL);
 	if (error != NULL)
 		goto done;
@@ -2759,14 +2770,17 @@ cmd_checkout(int argc, char *argv[])
 	if (error != NULL)
 		goto done;
 
+	printf("got_worktree_init\n");
 	error = got_worktree_init(worktree_fd, worktree_path, head_ref, path_prefix, repo);
 	if (error != NULL && !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 		goto done;
+	printf("got_worktree_init\n");
 
-	printf("test\n");
+	printf("got_worktree_open\n");
 	error = got_worktree_open(&worktree, worktree_fd, worktree_path, repo_fd);
 	if (error != NULL)
 		goto done;
+	printf("got_worktree_open\n");
 
 	printf("test\n");
 

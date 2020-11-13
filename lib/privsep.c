@@ -53,6 +53,8 @@
 #include <sys/event.h>
 #include <fcntl.h>
 #include <sys/procdesc.h>
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
 
 #ifndef MIN
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
@@ -114,7 +116,7 @@ const struct got_error *
 got_privsep_wait_for_child(int pd)
 {
 	int child_status;
-	struct kevent event; 
+	struct kevent event;
 
 	EV_SET(&event, pd, EVFILT_PROCDESC, EV_ADD | EV_ENABLE, NOTE_EXIT, 0, NULL);
 
@@ -2286,22 +2288,21 @@ got_privsep_unveil_exec_helpers(void)
 	};
 	size_t i;
 	int fd;
+	cap_rights_t rights;
 
 	helper_nv = nvlist_create(0);
+	cap_rights_init(&rights, CAP_FEXECVE);
 
 	for (i = 0; i < nitems(helpers); i++) {
-		/*
-		if (unveil(helpers[i], "x") == 0)
-			continue;
-		return got_error_from_errno2("unveil", helpers[i]);
-		*/
 		fd = open(helpers[i], O_RDONLY);
+		if (caph_rights_limit(fd, &rights) < 0)
+			return got_error_from_errno("caph_rights_limit");
 		nvlist_move_descriptor(helper_nv, helpers[i], fd);
 	}
 
 	rtld_fd = open("/libexec/ld-elf.so.1", O_RDONLY);
 	if (rtld_fd == -1)
-		return got_error_from_errno("open"); 
+		return got_error_from_errno("open");
 
 	lib_fd = open("/lib", O_DIRECTORY);
 	if (lib_fd == -1)
@@ -2314,11 +2315,7 @@ got_privsep_unveil_exec_helpers(void)
 	kq = kqueue();
 	if (kq == -1)
 		return got_error_from_errno("kqueue");
-	/*
-	openbsd_compat_fd = open("/usr/obj/usr/home/yzhong/src/got/openbsd-compat", O_DIRECTORY);
-	if (openbsd_compat_fd == -1)
-		return got_error_from_errno("open");
-	*/
+
 	return NULL;
 }
 
@@ -2345,14 +2342,6 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 		_exit(1);
 	}
 	*/
-	
-	/*
-	asprintf(&fd_buf, "%d", fd);
-	asprintf(&library_path_fds_buf, "%d:%d:%d", lib_fd, usr_lib_fd, openbsd_compat_fd);
-
-	setenv("LD_LIBRARY_PATH_FDS", library_path_fds_buf, 1);
-	setenv("LD_DEBUG", "1", 1);
-	*/
 
 	argv = malloc(sizeof(char *) * 7);
 	argv[0] = path;
@@ -2361,7 +2350,7 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 	/*
 	argv[0] = "/libexec/ld-elf.so.1";
 	argv[1] = "-f";
-	argv[2] = fd_buf; 
+	argv[2] = fd_buf;
 	argv[3] = "--";
 	argv[4] = path;
 	argv[5] = repo_path;

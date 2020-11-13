@@ -94,6 +94,7 @@ update_meta_file(int worktree_fd, const char *name, const char *content)
 		goto done;
 	}
 
+
 	err = got_opentemp_named_REPLACE(worktree_fd, &tmppath, &tmpfile, path);
 	if (err)
 		goto done;
@@ -403,7 +404,6 @@ open_worktree(struct got_worktree **worktree, int worktree_fd, const char *path,
 	if (err)
 		goto done;
 
-	printf("here\n");
 	err = got_object_resolve_id_str(&(*worktree)->base_commit_id, repo,
 	    base_commit_id_str);
 	if (err)
@@ -421,15 +421,15 @@ open_worktree(struct got_worktree **worktree, int worktree_fd, const char *path,
 		goto done;
 	}
 
-	int got_dir_fd = openat(worktree_fd, GOT_WORKTREE_GOT_DIR, O_DIRECTORY); 
+	int got_dir_fd = openat(worktree_fd, GOT_WORKTREE_GOT_DIR, O_DIRECTORY);
 
 	err = got_gotconfig_read(&(*worktree)->gotconfig,
 	    got_dir_fd);
 
 	close(got_dir_fd);
 
-	(*worktree)->root_fd = worktree_fd; 
-	(*worktree)->repo_fd = repo_fd; 
+	(*worktree)->root_fd = worktree_fd;
+	(*worktree)->repo_fd = repo_fd;
 done:
 	if (repo)
 		got_repo_close(repo);
@@ -461,7 +461,7 @@ got_worktree_open(struct got_worktree **worktree, int worktree_fd, const char *p
 
 	for (;;) {
 		char *parent_path;
-		
+
 		printf("open_worktree\n");
 		err = open_worktree(worktree, worktree_fd, worktree_path, repo_fd);
 		if (err && !(err->code == GOT_ERR_ERRNO && errno == ENOENT)) {
@@ -1899,7 +1899,7 @@ update_blob(struct got_worktree *worktree,
 	unsigned char status = GOT_STATUS_NO_CHANGE;
 	struct stat sb;
 
-	printf("update_blob\n"); //NOTE: pick up here
+	printf("update_blob\n");
 
 	if (asprintf(&ondisk_path, "%s/%s", worktree->root_path, path) == -1)
 		return got_error_from_errno("asprintf");
@@ -1954,7 +1954,7 @@ update_blob(struct got_worktree *worktree,
 	if (err)
 		goto done;
 
-	printf("update_blob\n"); //NOTE: pick up here
+	printf("update_blob\n");
 	if (status == GOT_STATUS_MODIFY || status == GOT_STATUS_ADD) {
 		int update_timestamps;
 		struct got_blob_object *blob2 = NULL;
@@ -2061,7 +2061,7 @@ update_blob(struct got_worktree *worktree,
 			    GOT_FILEIDX_MODE_BAD_SYMLINK);
 		}
 	}
-	printf("update_blob final\n"); //NOTE: pick up here
+	printf("update_blob final\n");
 	got_object_blob_close(blob);
 done:
 	free(ondisk_path);
@@ -2211,7 +2211,7 @@ diff_new(void *arg, struct got_tree_entry *te, const char *parent_path)
 	struct diff_cb_arg *a = arg;
 	const struct got_error *err;
 	char *path;
-	
+
 	printf("diff_new\n");
 
 	if (a->cancel_cb && a->cancel_cb(a->cancel_arg))
@@ -2530,12 +2530,10 @@ find_tree_entry_for_checkout(int *entry_type, char **tree_relpath,
 			err = got_error_from_errno("strdup");
 			goto done;
 		}
-	printf("here2\n");
 		err = got_object_id_by_path(tree_id, repo,
 		    worktree->base_commit_id, worktree->path_prefix);
 		if (err)
 			goto done;
-	printf("here2\n");
 		return NULL;
 	}
 
@@ -2708,6 +2706,7 @@ got_worktree_checkout_files(struct got_worktree *worktree,
 	err = lock_worktree(worktree, LOCK_EX);
 	if (err)
 		return err;
+
 	/* Map all specified paths to in-repository trees. */
 	TAILQ_FOREACH(pe, paths, entry) {
 		tpd = malloc(sizeof(*tpd));
@@ -2716,14 +2715,12 @@ got_worktree_checkout_files(struct got_worktree *worktree,
 			goto done;
 		}
 
-	printf("here1\n");
 		err = find_tree_entry_for_checkout(&tpd->entry_type,
 		    &tpd->relpath, &tpd->tree_id, pe->path, worktree, repo);
 		if (err) {
 			free(tpd);
 			goto done;
 		}
-	printf("here1\n");
 
 		if (tpd->entry_type == GOT_OBJ_TYPE_BLOB) {
 			err = got_path_basename(&tpd->entry_name, pe->path);
@@ -7963,7 +7960,6 @@ got_worktree_path_info(struct got_worktree *worktree,
     struct got_pathlist_head *paths,
     got_worktree_path_info_cb info_cb, void *info_arg,
     got_cancel_cb cancel_cb, void *cancel_arg)
-
 {
 	const struct got_error *err = NULL, *unlockerr;
 	struct got_fileindex *fileindex = NULL;

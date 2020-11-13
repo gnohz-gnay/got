@@ -406,7 +406,7 @@ open_repo(struct got_repository *repo, int fd, const char *path)
 	const struct got_error *err = NULL;
 
 	/* bare git repository? */
-	repo->path_fd = fd; 
+	repo->path_fd = fd;
 	repo->path_git_dir_fd = fd;
 
 	repo->path_git_dir = strdup(path);
@@ -709,14 +709,14 @@ got_repo_open(struct got_repository **repop, int repo_fd, const char *path,
 	    GOT_OBJECT_CACHE_TYPE_TAG);
 	if (err)
 		goto done;
-	
+
 	printf(">> is %s a real path?\n", abspath); //NOTE: see others like this
 	repo_path = strdup(abspath);
 	if (repo_path == NULL) {
 		err = got_error_from_errno2("realpath", abspath);
 		goto done;
 	}
-	
+
 	err = open_repo(repo, repo_fd, repo_path);
 	if (err != NULL && err->code != GOT_ERR_NOT_GIT_REPO)
 		goto done;
@@ -1024,7 +1024,7 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 	if (path_packdir == NULL)
 		return got_error_from_errno("got_repo_get_path_objects_pack");
 
-	int fd = openat(got_repo_get_path_git_dir_fd(repo), path_packdir, O_DIRECTORY); 
+	int fd = openat(got_repo_get_path_git_dir_fd(repo), path_packdir, O_DIRECTORY);
 	packdir = fdopendir(fd);
 
 	if (packdir == NULL) {

@@ -184,9 +184,9 @@ parse_ref_file(struct got_reference **ref, const char *name,
 			return err;
 		}
 	}
-	
+
 	//f = fopen(abspath, "rb");
-	int fd = openat(repo_fd, name, 0); 
+	int fd = openat(repo_fd, name, 0);
 	f = fdopen(fd, "rb");
 	if (f == NULL) {
 		if (errno != ENOTDIR && errno != ENOENT)
@@ -258,7 +258,7 @@ get_refs_dir_path(struct got_repository *repo, const char *refname)
 {
 	if (is_well_known_ref(refname) || strncmp(refname, "refs/", 5) == 0)
 		return strdup(".");
-	
+
 	return strdup(got_repo_get_path_refs(repo)); //NOTE: fix those functions. Repo doesn't do anything
 }
 
@@ -463,6 +463,8 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 		char *packed_refs_path;
 		FILE *f;
 
+		printf("ref is not well-known\n");
+
 		/* Search on-disk refs before packed refs! */
 		for (i = 0; i < nitems(subdirs); i++) {
 			err = open_ref(ref, repo, path_refs, subdirs[i], refname,
@@ -470,6 +472,8 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 			if ((err && err->code != GOT_ERR_NOT_REF) || *ref)
 				goto done;
 		}
+
+		printf("CODE BELOW THIS HAS NOT BEEN CAPSIZED\n");
 
 		packed_refs_path = got_repo_get_path_packed_refs(repo);
 		if (packed_refs_path == NULL) {
@@ -479,7 +483,7 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 		}
 
 		if (lock) {
-			printf("NEED TO TEST %s\n", packed_refs_path);
+			printf("open NEED TO TEST %s\n", packed_refs_path);
 			err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), packed_refs_path);
 			if (err)
 				goto done;
@@ -1136,7 +1140,6 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 	}
 
 	if (ref->lf == NULL) {
-		printf("NEED TO TEST %s\n", path);
 		err = got_lockfile_lock(&lf, git_fd, path);
 		if (err)
 			goto done;
@@ -1205,7 +1208,7 @@ delete_packed_ref(struct got_reference *delref, struct got_repository *repo)
 		goto done;
 
 	if (delref->lf == NULL) {
-		printf("NEED TO TEST %s\n", packed_refs_path);
+		printf("delete NEED TO TEST %s\n", packed_refs_path);
 		err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), packed_refs_path);
 		if (err)
 			goto done;
@@ -1347,7 +1350,7 @@ delete_loose_ref(struct got_reference *ref, struct got_repository *repo)
 	}
 
 	if (ref->lf == NULL) {
-		printf("NEED TO TEST %s\n", path);
+		printf("delete loose NEED TO TEST %s\n", path);
 		err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), path);
 		if (err)
 			goto done;

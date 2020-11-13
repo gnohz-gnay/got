@@ -109,7 +109,7 @@ got_object_get_path(char **path, struct got_object_id *id,
 
 	*path = NULL;
 
-	path_objects = GOT_OBJECTS_DIR; 
+	path_objects = GOT_OBJECTS_DIR;
 	if (path_objects == NULL)
 		return got_error_from_errno("got_repo_get_path_objects");
 
@@ -531,7 +531,7 @@ read_commit_privsep(struct got_commit_object **commit, int obj_fd,
 		free(ibuf);
 		return err;
 	}
-	
+
 	pid = fork();
 	if (pid == -1) {
 		err = got_error_from_errno("fork");
@@ -597,11 +597,9 @@ open_commit(struct got_commit_object **commit,
 	} else if (err->code == GOT_ERR_NO_OBJ) {
 		int fd;
 
-		printf("here5\n");
 		err = open_loose_object(&fd, id, repo);
 		if (err)
 			return err;
-		printf("here5\n");
 		err = read_commit_privsep(commit, fd, repo);
 	}
 
@@ -623,7 +621,7 @@ got_object_open_as_commit(struct got_commit_object **commit,
 		(*commit)->refcnt++;
 		return NULL;
 	}
-	printf("here4\n");
+
 	return open_commit(commit, repo, id, 0);
 }
 
@@ -722,7 +720,7 @@ read_tree_privsep(struct got_tree_object **tree, int obj_fd,
 		free(ibuf);
 		return err;
 	}
-	
+
 	pid = fork();
 	if (pid == -1) {
 		err = got_error_from_errno("fork");
@@ -1118,13 +1116,13 @@ open_blob(struct got_blob_object **blob, struct got_repository *repo,
 	size_t size, hdrlen;
 	struct stat sb;
 
-	printf("open_blob\n");
-
 	*blob = calloc(1, sizeof(**blob));
 	if (*blob == NULL)
 		return got_error_from_errno("calloc");
 
+	printf("open_blob\n");
 	outfd = got_opentempfd();
+	printf("open_blob\n");
 	if (outfd == -1)
 		return got_error_from_errno("got_opentempfd");
 
@@ -1641,11 +1639,9 @@ got_object_id_by_path(struct got_object_id **id, struct got_repository *repo,
 
 	*id = NULL;
 
-	printf("here3\n");
 	err = got_object_open_as_commit(&commit, repo, commit_id);
 	if (err)
 		goto done;
-	printf("here3\n");
 
 	/* Handle opening of root of commit's tree. */
 	if (got_path_is_root_dir(path)) {

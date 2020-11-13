@@ -79,6 +79,7 @@ main(int argc, char *argv[])
 		return 1;
 	}
 #endif
+
 	for (;;) {
 		if (sigint_received) {
 			err = got_error(GOT_ERR_CANCELLED);

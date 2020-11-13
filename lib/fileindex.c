@@ -840,24 +840,18 @@ diff_fileindex_tree(struct got_fileindex *fileindex,
 				    strcmp(te_name, entry_name) == 0)) {
 					err = cb->diff_old_new(cb_arg, *ie, te,
 					    path);
-					if (err)
-						printf("err1\n");
 					if (err || entry_name)
 						break;
 				}
 				*ie = walk_fileindex(fileindex, *ie);
 				err = walk_tree(&te, fileindex, ie, tree, &tidx,
 				    path, entry_name, repo, cb, cb_arg);
-				if (err)
-					printf("err2\n");
 			} else if (cmp < 0) {
 				next = walk_fileindex(fileindex, *ie);
 				if (got_path_is_child((*ie)->path, path,
 				    path_len) && (entry_name == NULL ||
 				    strcmp(te_name, entry_name) == 0)) {
 					err = cb->diff_old(cb_arg, *ie, path);
-					if (err)
-						printf("err3\n");
 					if (err || entry_name)
 						break;
 				}
@@ -866,18 +860,12 @@ diff_fileindex_tree(struct got_fileindex *fileindex,
 				if ((entry_name == NULL ||
 				    strcmp(te_name, entry_name) == 0)) {
 					err = cb->diff_new(cb_arg, te, path);
-					if (err)
-						printf("err4\n");
 					if (err || entry_name)
 						break;
 				}
-				if (err)
-					printf("err4\n");
 				err = walk_tree(&te, fileindex, ie, tree, &tidx,
 				    path, entry_name, repo, cb, cb_arg);
 			}
-			if (err)
-				printf("err5\n");
 			if (err)
 				break;
 		} else if (*ie) {
@@ -887,8 +875,6 @@ diff_fileindex_tree(struct got_fileindex *fileindex,
 			    (te && strcmp(got_tree_entry_get_name(te),
 			    entry_name) == 0))) {
 				err = cb->diff_old(cb_arg, *ie, path);
-				if (err)
-					printf("err6\n");
 				if (err || entry_name)
 					break;
 			}
@@ -899,15 +885,11 @@ diff_fileindex_tree(struct got_fileindex *fileindex,
 			    strcmp(got_tree_entry_get_name(te), entry_name)
 			    == 0)) {
 				err = cb->diff_new(cb_arg, te, path);
-				if (err)
-					printf("err7\n");
 				if (err || entry_name)
 					break;
 			}
 			err = walk_tree(&te, fileindex, ie, tree, &tidx, path,
 			    entry_name, repo, cb, cb_arg);
-			if (err)
-				printf("err8\n");
 			if (err)
 				break;
 		}
