@@ -177,7 +177,7 @@ parse_ref_file(struct got_reference **ref, const char *name,
 
 	if (lock) {
 		//err = got_lockfile_lock(&lf, abspath);
-		err = got_lockfile_lock(&lf, repo_fd, name);
+		err = got_lockfile_lock(&lf, repo_fd, absname);
 		if (err) {
 			if (err->code == GOT_ERR_ERRNO && errno == ENOENT)
 				err = got_error_not_ref(name);
@@ -186,7 +186,7 @@ parse_ref_file(struct got_reference **ref, const char *name,
 	}
 
 	//f = fopen(abspath, "rb");
-	int fd = openat(repo_fd, name, 0);
+	int fd = openat(repo_fd, absname, 0);
 	f = fdopen(fd, "rb");
 	if (f == NULL) {
 		if (errno != ENOTDIR && errno != ENOENT)
