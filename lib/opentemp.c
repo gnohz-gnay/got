@@ -40,7 +40,7 @@ got_opentempdir(void)
 	if (tempdir_fd == -1)
 		return got_error_from_errno("open");
 	cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_LOOKUP, CAP_CREATE,
-	    CAP_UNLINKAT, CAP_FSTAT, CAP_SEEK);
+	    CAP_FCNTL, CAP_UNLINKAT, CAP_FSTAT, CAP_SEEK);
 	if (caph_rights_limit(tempdir_fd, &rights) < 0)
 		return got_error_from_errno("caph_rights_limit");
 	return NULL;

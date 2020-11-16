@@ -2757,6 +2757,8 @@ cmd_checkout(int argc, char *argv[])
 	if (error != NULL)
 		goto done;
 
+	caph_cache_catpages();
+
 	if (caph_enter() < 0)
 		err(1, "caph_enter");
 
