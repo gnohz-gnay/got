@@ -40,6 +40,9 @@
 #include "got_lib_privsep.h"
 #include "got_lib_gotconfig.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 const struct got_error *
 got_gotconfig_read(struct got_gotconfig **conf, int git_fd)
 {
@@ -48,6 +51,7 @@ got_gotconfig_read(struct got_gotconfig **conf, int git_fd)
 	int imsg_fds[2] = { -1, -1 };
 	pid_t pid;
 	struct imsgbuf *ibuf;
+	cap_rights_t rights;
 
 	*conf = calloc(1, sizeof(**conf));
 	if (*conf == NULL)
@@ -59,6 +63,9 @@ got_gotconfig_read(struct got_gotconfig **conf, int git_fd)
 			return NULL;
 		return got_error_from_errno2("open", GOT_GOTCONFIG_FILENAME);
 	}
+	cap_rights_init(&rights); //NOTE: for some reason this still works?
+	if (caph_rights_limit(fd, &rights) < 0)
+		return got_error_from_errno("caph_rights_limit");
 
 	ibuf = calloc(1, sizeof(*ibuf));
 	if (ibuf == NULL) {

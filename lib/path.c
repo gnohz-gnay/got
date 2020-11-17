@@ -35,6 +35,9 @@
 #include "got_error.h"
 #include "got_path.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 #ifndef MIN
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #endif
@@ -573,11 +576,18 @@ got_path_create_fileat(int dir_fd, const char *path, const char *content)
 {
 	const struct got_error *err = NULL;
 	int fd = -1;
+	cap_rights_t rights;
 
 	fd = openat(dir_fd, path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW,
 	    GOT_DEFAULT_FILE_MODE);
 	if (fd == -1) {
 		err = got_error_from_errno2("open", path);
+		goto done;
+	}
+
+	cap_rights_init(&rights, CAP_READ, CAP_WRITE);
+	if (cap_rights_limit(fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
 		goto done;
 	}
 

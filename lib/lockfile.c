@@ -32,11 +32,15 @@
 
 #include "got_lib_lockfile.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 const struct got_error *
 got_lockfile_lock(struct got_lockfile **lf, int root_fd, const char *path)
 {
 	const struct got_error *err = NULL;
 	int attempts = 5;
+	cap_rights_t rights;
 
 	*lf = calloc(1, sizeof(**lf));
 	if (*lf == NULL)
@@ -71,6 +75,10 @@ got_lockfile_lock(struct got_lockfile **lf, int root_fd, const char *path)
 
 	if ((*lf)->fd == -1)
 		err = got_error(GOT_ERR_LOCKFILE_TIMEOUT);
+
+	cap_rights_init(&rights); //NOTE: also doesn't seem to affect anything? 
+	if (caph_rights_limit((*lf)->fd, &rights) < 0)
+		err = got_error_from_errno("caph_rights_limit");
 done:
 	if (err) {
 		got_lockfile_unlock(*lf);

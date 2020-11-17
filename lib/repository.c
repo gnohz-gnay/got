@@ -64,6 +64,9 @@
 #include "got_lib_repository.h"
 #include "got_lib_gotconfig.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 #ifndef nitems
 #define nitems(_a) (sizeof(_a) / sizeof((_a)[0]))
 #endif
@@ -343,7 +346,7 @@ got_repo_get_cached_tag(struct got_repository *repo, struct got_object_id *id)
 }
 
 const struct got_error *
-got_repo_find_git_path(char **path)
+got_repo_find_git_path(char **path) //NOTE: rights limit
 {
 	const struct got_error *error;
 	char *parent_path, *repo_path;
@@ -404,6 +407,7 @@ const struct got_error *
 open_repo(struct got_repository *repo, int fd, const char *path)
 {
 	const struct got_error *err = NULL;
+	cap_rights_t rights;
 
 	/* bare git repository? */
 	repo->path_fd = fd;
@@ -427,6 +431,13 @@ open_repo(struct got_repository *repo, int fd, const char *path)
 
 	repo->path_fd = fd;
 	repo->path_git_dir_fd = openat(fd, GOT_GIT_DIR, O_DIRECTORY | O_CREAT);
+
+	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET,
+	    CAP_CREATE, CAP_READ, CAP_WRITE, CAP_UNLINKAT, CAP_FLOCK, CAP_FCHMOD, CAP_MMAP_R);
+	if (caph_rights_limit(repo->path_git_dir_fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
+		goto done;
+	}
 
 	if (asprintf(&repo->path_git_dir, "%s/%s", path, GOT_GIT_DIR) == -1) {
 		err = got_error_from_errno("asprintf");
@@ -465,6 +476,7 @@ parse_gitconfig_file(int *gitconfig_repository_format_version,
 	int imsg_fds[2] = { -1, -1 };
 	pid_t pid;
 	struct imsgbuf *ibuf;
+	cap_rights_t rights;
 
 	*gitconfig_repository_format_version = 0;
 	if (extensions)
@@ -486,6 +498,10 @@ parse_gitconfig_file(int *gitconfig_repository_format_version,
 			return NULL;
 		return got_error_from_errno2("open", gitconfig_path);
 	}
+
+	cap_rights_init(&rights, CAP_READ, CAP_FSTAT);
+	if (caph_rights_limit(fd, &rights) < 0)
+		return got_error_from_errno("caph_rights_limit");
 
 	ibuf = calloc(1, sizeof(*ibuf));
 	if (ibuf == NULL) {
@@ -997,6 +1013,7 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 	struct dirent *dent;
 	char *path_packidx;
 	size_t i;
+	cap_rights_t rights;
 
 	/* Search pack index cache. */
 	for (i = 0; i < nitems(repo->packidx_cache); i++) {
@@ -1026,6 +1043,10 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 
 	int fd = openat(got_repo_get_path_git_dir_fd(repo), path_packdir, O_DIRECTORY);
 	packdir = fdopendir(fd);
+
+	cap_rights_init(&rights, CAP_FSTAT, CAP_READ, CAP_UNLINKAT, CAP_MMAP_R);
+	if (caph_rights_limit(fd, &rights) < 0)
+		return got_error_from_errno("caph_rights_limit");
 
 	if (packdir == NULL) {
 		if (errno == ENOENT)

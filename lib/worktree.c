@@ -59,6 +59,9 @@
 #include "got_lib_diff.h"
 #include "got_lib_gotconfig.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 #ifndef MIN
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #endif
@@ -128,6 +131,7 @@ read_meta_file(char **content, int worktree_fd, const char *path_got, const char
 	int fd = -1;
 	ssize_t n;
 	struct stat sb;
+	cap_rights_t rights;
 
 	*content = NULL;
 
@@ -145,6 +149,13 @@ read_meta_file(char **content, int worktree_fd, const char *path_got, const char
 			err = got_error_from_errno2("open", path);
 		goto done;
 	}
+
+	cap_rights_init(&rights, CAP_FLOCK, CAP_FSTAT, CAP_READ);
+	if (caph_rights_limit(fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
+		goto done;
+	}
+
 	if (flock(fd, LOCK_SH | LOCK_NB) == -1) {
 		err = (errno == EWOULDBLOCK ? got_error(GOT_ERR_WORKTREE_BUSY)
 		    : got_error_from_errno2("flock", path));
@@ -333,6 +344,7 @@ open_worktree(struct got_worktree **worktree, int worktree_fd, const char *path,
 	const char *errstr;
 	struct got_repository *repo = NULL;
 	uint32_t uuid_status;
+	cap_rights_t rights;
 
 	*worktree = NULL;
 
@@ -346,6 +358,12 @@ open_worktree(struct got_worktree **worktree, int worktree_fd, const char *path,
 	if (fd == -1) {
 		err = (errno == EWOULDBLOCK ? got_error(GOT_ERR_WORKTREE_BUSY)
 		    : got_error_from_errno2("open", path_lock));
+		goto done;
+	}
+
+	cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_FLOCK);
+	if (caph_rights_limit(fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
 		goto done;
 	}
 
@@ -422,6 +440,16 @@ open_worktree(struct got_worktree **worktree, int worktree_fd, const char *path,
 	}
 
 	int got_dir_fd = openat(worktree_fd, GOT_WORKTREE_GOT_DIR, O_DIRECTORY);
+	if (got_dir_fd == -1) {
+		err = got_error_from_errno2("openat", GOT_WORKTREE_GOT_DIR);
+		goto done;
+	}
+
+	cap_rights_init(&rights, CAP_LOOKUP, CAP_READ);
+	if (caph_rights_limit(got_dir_fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
+		goto done;
+	}
 
 	err = got_gotconfig_read(&(*worktree)->gotconfig,
 	    got_dir_fd);
@@ -1476,6 +1504,7 @@ install_blob(struct got_worktree *worktree, const char *ondisk_path,
 	size_t len, hdrlen;
 	int update = 0;
 	char *tmppath = NULL;
+	cap_rights_t rights;
 
 	fd = openat(worktree->root_fd, path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW,
 	    GOT_DEFAULT_FILE_MODE);
@@ -1521,6 +1550,11 @@ install_blob(struct got_worktree *worktree, const char *ondisk_path,
 	if (fchmod(fd, get_ondisk_perms(te_mode & S_IXUSR, st_mode)) == -1) {
 		err = got_error_from_errno2("fchmod",
 		    update ? tmppath : ondisk_path);
+	}
+
+	cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_FSYNC);
+	if (caph_rights_limit(fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
 		goto done;
 	}
 
@@ -2399,6 +2433,7 @@ open_fileindex(struct got_fileindex **fileindex, char **fileindex_path,
 {
 	const struct got_error *err = NULL;
 	FILE *index = NULL;
+	cap_rights_t rights;
 
 	*fileindex_path = NULL;
 	*fileindex = got_fileindex_alloc();
@@ -2412,8 +2447,15 @@ open_fileindex(struct got_fileindex **fileindex, char **fileindex_path,
 	int fd = openat(worktree->root_fd, *fileindex_path, O_RDONLY);
 	if (fd == -1) {
 		err = got_error_from_errno("openat");
-		return err;
+		goto done;
 	}
+
+	cap_rights_init(&rights, CAP_READ, CAP_FCNTL, CAP_FSTAT);
+	if (caph_rights_limit(fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
+		goto done;
+	}
+
 	index = fdopen(fd, "rb");
 	if (index == NULL) {
 		if (errno != ENOENT)

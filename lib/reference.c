@@ -48,6 +48,9 @@
 #include "got_lib_object.h"
 #include "got_lib_lockfile.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 #ifndef nitems
 #define nitems(_a) (sizeof(_a) / sizeof((_a)[0]))
 #endif
@@ -174,9 +177,9 @@ parse_ref_file(struct got_reference **ref, const char *name,
 	size_t linesize = 0;
 	ssize_t linelen;
 	struct got_lockfile *lf = NULL;
+	cap_rights_t rights;
 
 	if (lock) {
-		//err = got_lockfile_lock(&lf, abspath);
 		err = got_lockfile_lock(&lf, repo_fd, absname);
 		if (err) {
 			if (err->code == GOT_ERR_ERRNO && errno == ENOENT)
@@ -185,8 +188,13 @@ parse_ref_file(struct got_reference **ref, const char *name,
 		}
 	}
 
-	//f = fopen(abspath, "rb");
 	int fd = openat(repo_fd, absname, 0);
+	cap_rights_init(&rights, CAP_READ, CAP_FSTAT, CAP_FCNTL);
+	if (caph_rights_limit(fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
+		return err;
+	}
+
 	f = fdopen(fd, "rb");
 	if (f == NULL) {
 		if (errno != ENOTDIR && errno != ENOENT)

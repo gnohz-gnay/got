@@ -49,6 +49,9 @@
 #include "got_lib_privsep.h"
 #include "got_lib_pack.h"
 
+#include <sys/capsicum.h>
+#include <capsicum_helpers.h>
+
 #ifndef nitems
 #define nitems(_a) (sizeof(_a) / sizeof((_a)[0]))
 #endif
@@ -335,6 +338,7 @@ got_packidx_open(struct got_packidx **packidx, const char *path, int verify)
 	const struct got_error *err = NULL;
 	struct got_packidx *p;
 	struct stat sb;
+	cap_rights_t rights;
 
 	*packidx = NULL;
 
@@ -346,6 +350,11 @@ got_packidx_open(struct got_packidx **packidx, const char *path, int verify)
 	if (p->fd == -1) {
 		err = got_error_from_errno2("open", path);
 		free(p);
+		return err;
+	}
+	cap_rights_init(&rights, CAP_FSTAT, CAP_MMAP_R);
+	if (caph_rights_limit(p->fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
 		return err;
 	}
 

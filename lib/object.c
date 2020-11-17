@@ -56,6 +56,8 @@
 #include "got_lib_pack.h"
 #include "got_lib_repository.h"
 
+#include <capsicum_helpers.h>
+
 #ifndef MIN
 #define	MIN(_a,_b) ((_a) < (_b) ? (_a) : (_b))
 #endif
@@ -133,6 +135,7 @@ open_loose_object(int *fd, struct got_object_id *id,
 {
 	const struct got_error *err = NULL;
 	char *path;
+	cap_rights_t rights;
 
 	err = got_object_get_path(&path, id, repo);
 	if (err)
@@ -142,6 +145,9 @@ open_loose_object(int *fd, struct got_object_id *id,
 		err = got_error_from_errno2("open", path);
 		goto done;
 	}
+	cap_rights_init(&rights, CAP_READ, CAP_FCNTL, CAP_SEEK, CAP_FSTAT);
+	if (caph_rights_limit(*fd, &rights) < 0)
+		err = got_error_from_errno("caph_rights_limit");
 done:
 	free(path);
 	return err;
