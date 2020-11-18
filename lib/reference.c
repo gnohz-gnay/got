@@ -205,7 +205,6 @@ parse_ref_file(struct got_reference **ref, const char *name,
 			got_lockfile_unlock(lf);
 		return err;
 	}
-
 	linelen = getline(&line, &linesize, f);
 	if (linelen == -1) {
 		if (feof(f))
@@ -470,8 +469,6 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 	} else {
 		char *packed_refs_path;
 		FILE *f;
-
-		printf("ref is not well-known\n");
 
 		/* Search on-disk refs before packed refs! */
 		for (i = 0; i < nitems(subdirs); i++) {
@@ -1096,6 +1093,7 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 	size_t n;
 	struct stat sb;
 	int git_fd;
+
 
 	git_fd = got_repo_get_path_git_dir_fd(repo);
 

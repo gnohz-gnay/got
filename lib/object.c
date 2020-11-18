@@ -1126,9 +1126,7 @@ open_blob(struct got_blob_object **blob, struct got_repository *repo,
 	if (*blob == NULL)
 		return got_error_from_errno("calloc");
 
-	printf("open_blob\n");
 	outfd = got_opentempfd();
-	printf("open_blob\n");
 	if (outfd == -1)
 		return got_error_from_errno("got_opentempfd");
 

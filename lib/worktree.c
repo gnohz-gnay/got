@@ -210,9 +210,7 @@ write_head_ref(int worktree_fd, struct got_reference *head_ref)
 		if (refstr == NULL)
 			return got_error_from_errno("strdup");
 	}
-	printf("update_meta_file\n");
 	err = update_meta_file(worktree_fd, GOT_WORKTREE_HEAD_REF, refstr);
-	printf("update_meta_file\n");
 	free(refstr);
 	return err;
 }
@@ -240,6 +238,7 @@ got_worktree_init(int fd, const char *path, struct got_reference *head_ref,
 	err = got_ref_resolve(&commit_id, repo, head_ref);
 	if (err)
 		return err;
+	printf("test\n");
 	err = got_object_get_type(&obj_type, repo, commit_id);
 	if (err)
 		return err;
@@ -272,11 +271,9 @@ got_worktree_init(int fd, const char *path, struct got_reference *head_ref,
 		goto done;
 
 	/* Write the HEAD reference. */
-	printf("writing HEAD reference...\n");
 	err = write_head_ref(fd, head_ref);
 	if (err)
 		goto done;
-	printf("done writing HEAD reference...\n");
 
 	/* Record our base commit. */
 	err = got_object_id_str(&basestr, commit_id);
@@ -490,13 +487,11 @@ got_worktree_open(struct got_worktree **worktree, int worktree_fd, const char *p
 	for (;;) {
 		char *parent_path;
 
-		printf("open_worktree\n");
 		err = open_worktree(worktree, worktree_fd, worktree_path, repo_fd);
 		if (err && !(err->code == GOT_ERR_ERRNO && errno == ENOENT)) {
 			free(worktree_path);
 			return err;
 		}
-		printf("open_worktree\n");
 		if (*worktree) {
 			free(worktree_path);
 			return NULL;
@@ -1219,12 +1214,10 @@ create_fileindex_entry(struct got_fileindex_entry **new_iep,
 	if (err)
 		return err;
 
-	printf("got_fileindex_entry_update\n");
 	err = got_fileindex_entry_update(new_ie, wt_fd, path,
 	    blob_id->sha1, base_commit_id->sha1, 1);
 	if (err)
 		goto done;
-	printf("got_fileindex_entry_update\n");
 
 	err = got_fileindex_entry_add(fileindex, new_ie);
 done:
@@ -1933,8 +1926,6 @@ update_blob(struct got_worktree *worktree,
 	unsigned char status = GOT_STATUS_NO_CHANGE;
 	struct stat sb;
 
-	printf("update_blob\n");
-
 	if (asprintf(&ondisk_path, "%s/%s", worktree->root_path, path) == -1)
 		return got_error_from_errno("asprintf");
 
@@ -1988,7 +1979,6 @@ update_blob(struct got_worktree *worktree,
 	if (err)
 		goto done;
 
-	printf("update_blob\n");
 	if (status == GOT_STATUS_MODIFY || status == GOT_STATUS_ADD) {
 		int update_timestamps;
 		struct got_blob_object *blob2 = NULL;
@@ -2065,13 +2055,11 @@ update_blob(struct got_worktree *worktree,
 			    status == GOT_STATUS_UNVERSIONED, repo,
 			    progress_cb, progress_arg);
 		} else {
-			printf("install_blob\n");
 			err = install_blob(worktree, ondisk_path, path,
 			    te->mode, sb.st_mode, blob,
 			    status == GOT_STATUS_MISSING, 0, 0,
 			    status == GOT_STATUS_UNVERSIONED, repo,
 			    progress_cb, progress_arg);
-			printf("install_blob\n");
 		}
 		if (err)
 			goto done;
@@ -2081,11 +2069,9 @@ update_blob(struct got_worktree *worktree,
 			err = got_fileindex_entry_update(ie, -1, ondisk_path,
 			    blob->id.sha1, worktree->base_commit_id->sha1, 1);
 		} else {
-			printf("create_fileindex_entry\n");
 			err = create_fileindex_entry(&ie, fileindex,
 			    worktree->base_commit_id, ondisk_path, worktree->root_fd, path,
 			    &blob->id);
-			printf("create_fileindex_entry\n");
 		}
 		if (err)
 			goto done;
@@ -2095,7 +2081,6 @@ update_blob(struct got_worktree *worktree,
 			    GOT_FILEIDX_MODE_BAD_SYMLINK);
 		}
 	}
-	printf("update_blob final\n");
 	got_object_blob_close(blob);
 done:
 	free(ondisk_path);
@@ -2246,8 +2231,6 @@ diff_new(void *arg, struct got_tree_entry *te, const char *parent_path)
 	const struct got_error *err;
 	char *path;
 
-	printf("diff_new\n");
-
 	if (a->cancel_cb && a->cancel_cb(a->cancel_arg))
 		return got_error(GOT_ERR_CANCELLED);
 
@@ -2260,18 +2243,11 @@ diff_new(void *arg, struct got_tree_entry *te, const char *parent_path)
 		return got_error_from_errno("asprintf");
 
 	if (S_ISDIR(te->mode)) {
-		printf("is dir\n");
 		err = add_dir_on_disk(a->worktree, path);
-		if (err)
-			printf("is dir err\n");
 	} else {
-		printf("not dir\n");
 		err = update_blob(a->worktree, a->fileindex, NULL, te, path,
 		    a->repo, a->progress_cb, a->progress_arg);
-		if (err)
-			printf("diff_new err\n");
 	}
-	printf("diff_new\n");
 
 	free(path);
 	return err;
@@ -2404,8 +2380,6 @@ ref_base_commit(struct got_worktree *worktree, struct got_repository *repo)
 		goto done;
 
 	err = got_ref_write(ref, repo);
-	if (err)
-		printf("code: %s\n", err->msg);
 done:
 	free(refname);
 	if (ref)
@@ -2519,7 +2493,6 @@ sync_fileindex(struct got_fileindex *fileindex, int wt_fd, const char *fileindex
 	FILE *new_index = NULL;
 	struct timespec timeout;
 
-	printf("%s\n", fileindex_path);
 	err = got_opentemp_named_REPLACE(wt_fd, &new_fileindex_path, &new_index,
 	    fileindex_path);
 	if (err)
@@ -2665,10 +2638,7 @@ checkout_files(struct got_worktree *worktree, struct got_fileindex *fileindex,
 	struct got_fileindex_diff_tree_cb diff_cb;
 	struct diff_cb_arg arg;
 
-	printf("ref_base_commit\n");
 	err = ref_base_commit(worktree, repo);
-	if (err)
-		printf("code: %d\n", err->code);
 	if (err) {
 		if (!(err->code == GOT_ERR_ERRNO &&
 		    (errno == EACCES || errno == EROFS)))
@@ -2679,26 +2649,20 @@ checkout_files(struct got_worktree *worktree, struct got_fileindex *fileindex,
 			return err;
 	}
 
-	printf("got_object_open_as_commit\n");
 	err = got_object_open_as_commit(&commit, repo,
 	    worktree->base_commit_id);
 	if (err)
 		goto done;
-	printf("got_object_open_as_commit\n");
 
-	printf("got_object_open_as_tree\n");
 	err = got_object_open_as_tree(&tree, repo, tree_id);
 	if (err)
 		goto done;
-	printf("got_object_open_as_tree\n");
 
-	printf("got_object_tree_find_entry\n");
 	if (entry_name &&
 	    got_object_tree_find_entry(tree, entry_name) == NULL) {
 		err = got_error_path(entry_name, GOT_ERR_NO_TREE_ENTRY);
 		goto done;
 	}
-	printf("got_object_tree_find_entry\n");
 
 	diff_cb.diff_old_new = diff_old_new;
 	diff_cb.diff_old = diff_old;
@@ -2710,10 +2674,8 @@ checkout_files(struct got_worktree *worktree, struct got_fileindex *fileindex,
 	arg.progress_arg = progress_arg;
 	arg.cancel_cb = cancel_cb;
 	arg.cancel_arg = cancel_arg;
-	printf("got_fileindex_diff_tree\n");
 	err = got_fileindex_diff_tree(fileindex, tree, relpath,
 	    entry_name, repo, &diff_cb, &arg);
-	printf("got_fileindex_diff_tree\n");
 done:
 	if (tree)
 		got_object_tree_close(tree);
@@ -2783,23 +2745,19 @@ got_worktree_checkout_files(struct got_worktree *worktree,
 	 * Checking out files is supposed to be an idempotent operation.
 	 * If the on-disk file index is incomplete we will try to complete it.
 	 */
-	printf("open_fileindex\n");
 	err = open_fileindex(&fileindex, &fileindex_path, worktree);
 	if (err)
 		goto done;
-	printf("open_fileindex\n");
 
 	tpd = SIMPLEQ_FIRST(&tree_paths);
 	TAILQ_FOREACH(pe, paths, entry) {
 		struct bump_base_commit_id_arg bbc_arg;
 
-		printf("checkout_files\n");
 		err = checkout_files(worktree, fileindex, tpd->relpath,
 		    tpd->tree_id, tpd->entry_name, repo,
 		    progress_cb, progress_arg, cancel_cb, cancel_arg);
 		if (err)
 			break;
-		printf("checkout_files\n");
 
 		bbc_arg.base_commit_id = worktree->base_commit_id;
 		bbc_arg.entry_name = tpd->entry_name;
@@ -2815,8 +2773,6 @@ got_worktree_checkout_files(struct got_worktree *worktree,
 		tpd = SIMPLEQ_NEXT(tpd, entry);
 	}
 	sync_err = sync_fileindex(fileindex, worktree->root_fd, fileindex_path);
-	if (sync_err)
-		printf("sync_err\n");
 	if (sync_err && err == NULL)
 		err = sync_err;
 done:

@@ -726,7 +726,6 @@ got_repo_open(struct got_repository **repop, int repo_fd, const char *path,
 	if (err)
 		goto done;
 
-	printf(">> is %s a real path?\n", abspath); //NOTE: see others like this
 	repo_path = strdup(abspath);
 	if (repo_path == NULL) {
 		err = got_error_from_errno2("realpath", abspath);
@@ -745,7 +744,6 @@ got_repo_open(struct got_repository **repop, int repo_fd, const char *path,
 	if (err)
 		goto done;
 
-	printf("finished reading gitconfig\n");
 	if (repo->gitconfig_repository_format_version != 0)
 		err = got_error_path(path, GOT_ERR_GIT_REPO_FORMAT);
 	for (i = 0; i < repo->nextensions; i++) {
@@ -1257,10 +1255,8 @@ got_repo_init(const char *repo_path, int fd)
 	char *path;
 	size_t i;
 
-	if (!got_path_dir_is_empty(fd)) {
-		printf("not empty\n");
+	if (!got_path_dir_is_empty(fd))
 		return got_error(GOT_ERR_DIR_NOT_EMPTY);
-	}
 
 	for (i = 0; i < nitems(dirnames); i++) {
 		//if (asprintf(&path, "%s/%s", repo_path, dirnames[i]) == -1) {

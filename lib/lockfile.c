@@ -92,7 +92,6 @@ got_lockfile_unlock(struct got_lockfile *lf)
 {
 	const struct got_error *err = NULL;
 
-	printf("%s\n", lf->path);
 	if (lf->path && lf->fd != -1 && unlinkat(lf->root_fd, lf->path, 0) != 0)
 		err = got_error_from_errno("unlinkat");
 	if (lf->fd != -1 && close(lf->fd) != 0 && err == NULL)

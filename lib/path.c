@@ -348,8 +348,6 @@ got_path_mkdir(const char *abspath)
 {
 	const struct got_error *err = NULL;
 
-	printf("got_path_mkdir\n");
-
 	if (mkdir(abspath, GOT_DEFAULT_DIR_MODE) == -1) {
 		if (errno == ENOENT) {
 			err = make_parent_dirs(abspath);

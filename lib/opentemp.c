@@ -56,9 +56,7 @@ got_opentempfd(void)
 	    >= sizeof(name))
 		return -1;
 
-	printf("here\n");
 	fd = mkostempsat(tempdir_fd, name, 0, 0);
-	printf("here\n");
 	if (fd != -1)
 		unlinkat(tempdir_fd, name, 0);
 	return fd;

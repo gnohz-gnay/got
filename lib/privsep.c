@@ -64,8 +64,6 @@
 #define nitems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
 #endif
 
-extern char **environ;
-
 static const struct got_error *
 poll_fd(int fd, int events, int timeout)
 {
@@ -2357,9 +2355,7 @@ got_privsep_exec_child(int imsg_fds[2], const char *path, const char *repo_path)
 	argv[6] = (char *) NULL;
 	*/
 
-	printf("starting child... %s\n", path);
-
-	if (fexecve(fd, __DECONST(char **, argv), environ) == -1) {
+	if (fexecve(fd, __DECONST(char **, argv), NULL) == -1) {
 		fprintf(stderr, "%s: %s: %s\n", getprogname(), path,
 		    strerror(errno));
 		_exit(1);
