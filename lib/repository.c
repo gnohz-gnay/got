@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/procdesc.h>
 #include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/uio.h>
@@ -695,12 +696,7 @@ got_repo_open(struct got_repository **repop, int repo_fd, const char *path,
 
 	*repop = NULL;
 
-	if (got_path_is_absolute(path))
-		abspath = strdup(path);
-	else
-		abspath = got_path_get_absolute(path);
-	if (abspath == NULL)
-		return got_error_path(path, GOT_ERR_BAD_PATH);
+	abspath = strdup(path);
 
 	repo = calloc(1, sizeof(*repo));
 	if (repo == NULL) {

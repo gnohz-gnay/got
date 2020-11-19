@@ -449,7 +449,7 @@ open_worktree(struct got_worktree **worktree, int worktree_fd, const char *path,
 	}
 
 	err = got_gotconfig_read(&(*worktree)->gotconfig,
-	    got_dir_fd);
+	    GOT_GOTCONFIG_FILENAME, got_dir_fd);
 
 	close(got_dir_fd);
 
@@ -1549,7 +1549,8 @@ install_blob(struct got_worktree *worktree, const char *ondisk_path,
 		    update ? tmppath : ondisk_path);
 	}
 
-	cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_FSYNC);
+	cap_rights_init(&rights, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET, CAP_UNLINKAT,
+	    CAP_READ, CAP_WRITE, CAP_FSYNC);
 	if (caph_rights_limit(fd, &rights) < 0) {
 		err = got_error_from_errno("caph_rights_limit");
 		goto done;
@@ -2391,8 +2392,8 @@ done:
 	return err;
 }
 
-static const struct got_error * //NOTE: get rid of extra parameter (worktree)
-get_fileindex_path(char **fileindex_path, struct got_worktree *worktree)
+static const struct got_error *
+get_fileindex_path(char **fileindex_path)
 {
 	const struct got_error *err = NULL;
 
@@ -2418,7 +2419,7 @@ open_fileindex(struct got_fileindex **fileindex, char **fileindex_path,
 	if (*fileindex == NULL)
 		return got_error_from_errno("got_fileindex_alloc");
 
-	err = get_fileindex_path(fileindex_path, worktree);
+	err = get_fileindex_path(fileindex_path);
 	if (err)
 		goto done;
 
@@ -6164,7 +6165,7 @@ rebase_merge_files(struct got_pathlist_head *merged_paths,
 
 	/* Work tree is locked/unlocked during rebase preparation/teardown. */
 
-	err = get_fileindex_path(&fileindex_path, worktree);
+	err = get_fileindex_path(&fileindex_path);
 	if (err)
 		return err;
 
@@ -6253,7 +6254,7 @@ rebase_commit(struct got_object_id **new_commit_id,
 
 	/* Work tree is locked/unlocked during rebase preparation/teardown. */
 
-	err = get_fileindex_path(&fileindex_path, worktree);
+	err = get_fileindex_path(&fileindex_path);
 	if (err)
 		return err;
 
@@ -6566,7 +6567,7 @@ got_worktree_rebase_abort(struct got_worktree *worktree,
 	if (err)
 		goto done;
 
-	err = get_fileindex_path(&fileindex_path, worktree);
+	err = get_fileindex_path(&fileindex_path);
 	if (err)
 		goto done;
 
@@ -6920,7 +6921,7 @@ got_worktree_histedit_abort(struct got_worktree *worktree,
 	if (err)
 		goto done;
 
-	err = get_fileindex_path(&fileindex_path, worktree);
+	err = get_fileindex_path(&fileindex_path);
 	if (err)
 		goto done;
 
@@ -7089,7 +7090,7 @@ got_worktree_integrate_continue(struct got_worktree *worktree,
 	char *fileindex_path = NULL;
 	struct got_object_id *tree_id = NULL, *commit_id = NULL;
 
-	err = get_fileindex_path(&fileindex_path, worktree);
+	err = get_fileindex_path(&fileindex_path);
 	if (err)
 		goto done;
 

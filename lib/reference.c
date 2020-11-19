@@ -21,7 +21,6 @@
 #include <errno.h>
 #include <ctype.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <sha1.h>
 #include <stdio.h>
@@ -408,7 +407,7 @@ open_packed_ref(struct got_reference **ref, FILE *f, const char **subdirs,
 }
 
 static const struct got_error *
-open_ref(struct got_reference **ref, struct got_repository *repo, const char *path_refs, const char *subdir,
+open_ref(struct got_reference **ref, int git_dir_fd, const char *path_refs, const char *subdir,
     const char *name, int lock)
 {
 	const struct got_error *err = NULL;
@@ -435,7 +434,7 @@ open_ref(struct got_reference **ref, struct got_repository *repo, const char *pa
 		}
 	}
 
-	err = parse_ref_file(ref, name, got_repo_get_path_git_dir_fd(repo), absname, path, lock);
+	err = parse_ref_file(ref, name, git_dir_fd, absname, path, lock);
 done:
 	if (!ref_is_absolute && !ref_is_well_known)
 		free(absname);
@@ -455,6 +454,7 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 	size_t i;
 	int well_known = is_well_known_ref(refname);
 	struct got_lockfile *lf = NULL;
+	int git_dir_fd = got_repo_get_path_git_dir_fd(repo);
 
 	*ref = NULL;
 
@@ -465,14 +465,14 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 	}
 
 	if (well_known) {
-		err = open_ref(ref, repo, path_refs, "", refname, lock);
+		err = open_ref(ref, git_dir_fd, path_refs, "", refname, lock);
 	} else {
 		char *packed_refs_path;
 		FILE *f;
 
 		/* Search on-disk refs before packed refs! */
 		for (i = 0; i < nitems(subdirs); i++) {
-			err = open_ref(ref, repo, path_refs, subdirs[i], refname,
+			err = open_ref(ref, git_dir_fd, path_refs, subdirs[i], refname,
 			    lock);
 			if ((err && err->code != GOT_ERR_NOT_REF) || *ref)
 				goto done;
@@ -843,7 +843,8 @@ gather_on_disk_refs(struct got_reflist_head *refs, const char *path_refs,
 
 		switch (type) {
 		case DT_REG:
-			err = open_ref(&ref, repo, path_refs, subdir, dent->d_name,
+			err = open_ref(&ref, got_repo_get_path_git_dir_fd(repo),
+			    path_refs, subdir, dent->d_name,
 			    0);
 			if (err)
 				goto done;
@@ -896,7 +897,8 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 			err = got_error_from_errno("get_refs_dir_path");
 			goto done;
 		}
-		err = open_ref(&ref, repo, path_refs, "", GOT_REF_HEAD, 0);
+		err = open_ref(&ref, got_repo_get_path_git_dir_fd(repo),
+		    path_refs, "", GOT_REF_HEAD, 0);
 		if (err)
 			goto done;
 		err = insert_ref(&new, refs, ref, repo,
@@ -913,7 +915,8 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 			err = got_error_from_errno("get_refs_dir_path");
 			goto done;
 		}
-		err = open_ref(&ref, repo, path_refs, "", refname, 0);
+		err = open_ref(&ref, got_repo_get_path_git_dir_fd(repo),
+		    path_refs, "", refname, 0);
 		if (err) {
 			if (err->code != GOT_ERR_NOT_REF)
 				goto done;
@@ -1092,10 +1095,7 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 	FILE *f = NULL;
 	size_t n;
 	struct stat sb;
-	int git_fd;
-
-
-	git_fd = got_repo_get_path_git_dir_fd(repo);
+	int git_fd = got_repo_get_path_git_dir_fd(repo);
 
 	path_refs = get_refs_dir_path(repo, name);
 	if (path_refs == NULL) {
@@ -1116,7 +1116,7 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 		err = got_path_dirname(&parent, path);
 		if (err)
 			goto done;
-		err = got_path_mkdir(parent);
+		err = got_path_mkdirat(git_fd, parent);
 		free(parent);
 		if (err)
 			goto done;

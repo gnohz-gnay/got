@@ -59,7 +59,7 @@ create_object_file(struct got_object_id *id, FILE *content,
 	struct got_lockfile *lf = NULL;
 	size_t tmplen = 0;
 
-	err = got_object_get_path(&objpath, id, repo);
+	err = got_object_get_path(&objpath, id);
 	if (err)
 		return err;
 

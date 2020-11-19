@@ -44,7 +44,7 @@
 #include <capsicum_helpers.h>
 
 const struct got_error *
-got_gotconfig_read(struct got_gotconfig **conf, int git_fd)
+got_gotconfig_read(struct got_gotconfig **conf, const char *gotconfig_path, int git_fd)
 {
 	const struct got_error *err = NULL, *child_err = NULL;
 	int fd = -1;
@@ -57,11 +57,11 @@ got_gotconfig_read(struct got_gotconfig **conf, int git_fd)
 	if (*conf == NULL)
 		return got_error_from_errno("calloc");
 
-	fd = openat(git_fd, GOT_GOTCONFIG_FILENAME, O_RDONLY);
+	fd = openat(git_fd, gotconfig_path, O_RDONLY);
 	if (fd == -1) {
 		if (errno == ENOENT)
 			return NULL;
-		return got_error_from_errno2("open", GOT_GOTCONFIG_FILENAME);
+		return got_error_from_errno2("open", gotconfig_path);
 	}
 	cap_rights_init(&rights); //NOTE: for some reason this still works?
 	if (caph_rights_limit(fd, &rights) < 0)
@@ -84,7 +84,7 @@ got_gotconfig_read(struct got_gotconfig **conf, int git_fd)
 		goto done;
 	} else if (pid == 0) {
 		got_privsep_exec_child(imsg_fds, GOT_PATH_PROG_READ_GOTCONFIG,
-		    GOT_GOTCONFIG_FILENAME);
+		    gotconfig_path);
 		/* not reached */
 	}
 
@@ -128,7 +128,7 @@ done:
 	if (imsg_fds[1] != -1 && close(imsg_fds[1]) == -1 && err == NULL)
 		err = got_error_from_errno("close");
 	if (fd != -1 && close(fd) == -1 && err == NULL)
-		err = got_error_from_errno2("close", GOT_GOTCONFIG_FILENAME);
+		err = got_error_from_errno2("close", gotconfig_path);
 	if (err) {
 		got_gotconfig_free(*conf);
 		*conf = NULL;

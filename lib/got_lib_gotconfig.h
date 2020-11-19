@@ -23,5 +23,5 @@ struct got_gotconfig {
 };
 
 const struct got_error *got_gotconfig_read(struct got_gotconfig **,
-    int);
+    const char *, int);
 void got_gotconfig_free(struct got_gotconfig *);
