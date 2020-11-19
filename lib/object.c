@@ -111,7 +111,7 @@ got_object_get_path(char **path, struct got_object_id *id,
 
 	*path = NULL;
 
-	path_objects = GOT_OBJECTS_DIR;
+	path_objects = got_repo_get_path_objects();
 	if (path_objects == NULL)
 		return got_error_from_errno("got_repo_get_path_objects");
 
@@ -125,7 +125,7 @@ got_object_get_path(char **path, struct got_object_id *id,
 
 done:
 	free(hex);
-	//free(path_objects);
+	free(path_objects);
 	return err;
 }
 

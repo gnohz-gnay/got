@@ -266,7 +266,7 @@ get_refs_dir_path(struct got_repository *repo, const char *refname)
 	if (is_well_known_ref(refname) || strncmp(refname, "refs/", 5) == 0)
 		return strdup(".");
 
-	return strdup(got_repo_get_path_refs(repo)); //NOTE: fix those functions. Repo doesn't do anything
+	return got_repo_get_path_refs();
 }
 
 static int

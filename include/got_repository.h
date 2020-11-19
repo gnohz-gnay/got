@@ -90,12 +90,12 @@ const struct got_gotconfig *got_repo_get_gotconfig(struct got_repository *);
  * Obtain paths to various directories within a repository.
  * The caller must dispose of a path with free(3).
  */
-char *got_repo_get_path_objects(struct got_repository *);
-char *got_repo_get_path_objects_pack(struct got_repository *);
-char *got_repo_get_path_refs(struct got_repository *);
+char *got_repo_get_path_objects(void);
+char *got_repo_get_path_objects_pack(void);
+char *got_repo_get_path_refs(void);
 char *got_repo_get_path_packed_refs(struct got_repository *);
 char *got_repo_get_path_gitconfig(struct got_repository *);
-char *got_repo_get_path_gotconfig(struct got_repository *);
+char *got_repo_get_path_gotconfig(void);
 
 struct got_reference;
 

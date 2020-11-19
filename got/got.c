@@ -1179,7 +1179,7 @@ create_gotconfig(const char *proto, const char *host, const char *port,
 	ssize_t n;
 
 	/* Create got.conf(5). */
-	gotconfig_path = got_repo_get_path_gotconfig(repo);
+	gotconfig_path = got_repo_get_path_gotconfig();
 	if (gotconfig_path == NULL) {
 		err = got_error_from_errno("got_repo_get_path_gotconfig");
 		goto done;

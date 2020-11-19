@@ -143,21 +143,21 @@ get_path_git_child(struct got_repository *repo, const char *basename)
 }
 
 char *
-got_repo_get_path_objects(struct got_repository *repo)
+got_repo_get_path_objects(void)
 {
-	return get_path_git_child(repo, GOT_OBJECTS_DIR);
-}
-
-char * //NOTE: NONE OF THESE SHOULD BE NEEDED AFTER I'M DONE
-got_repo_get_path_objects_pack(struct got_repository *repo)
-{
-	return get_path_git_child(repo, GOT_OBJECTS_PACK_DIR);
+	return strdup(GOT_OBJECTS_DIR);
 }
 
 char *
-got_repo_get_path_refs(struct got_repository *repo)
+got_repo_get_path_objects_pack(void)
 {
-	return GOT_REFS_DIR;
+	return strdup(GOT_OBJECTS_PACK_DIR);
+}
+
+char *
+got_repo_get_path_refs(void)
+{
+	return strdup(GOT_REFS_DIR);
 }
 
 char *
@@ -179,9 +179,9 @@ got_repo_get_path_gitconfig(struct got_repository *repo)
 }
 
 char *
-got_repo_get_path_gotconfig(struct got_repository *repo)
+got_repo_get_path_gotconfig(void)
 {
-	return get_path_git_child(repo, GOT_GOTCONFIG_FILENAME);
+	return strdup(GOT_GOTCONFIG_FILENAME);
 }
 
 const struct got_gotconfig *
@@ -662,13 +662,18 @@ static const struct got_error *
 read_gotconfig(struct got_repository *repo)
 {
 	const struct got_error *err = NULL;
+	char *gotconfig_path;
 	int git_fd;
 
+	gotconfig_path = got_repo_get_path_gotconfig();
+	if (gotconfig_path == NULL)
+		return got_error_from_errno("got_repo_get_path_gotconfig");
 	git_fd = got_repo_get_path_git_dir_fd(repo);
 	if (git_fd == -1)
 		return got_error_from_errno("got_repo_get_path_git_dir_fd");
 
-	err = got_gotconfig_read(&repo->gotconfig, git_fd);
+	err = got_gotconfig_read(&repo->gotconfig, gotconfig_path, git_fd);
+	free(gotconfig_path);
 	return err;
 }
 
@@ -1306,9 +1311,11 @@ match_packed_object(struct got_object_id **unique_id,
 	char *path_packidx;
 	struct got_object_id_queue matched_ids;
 
+	printf("MATCH_PACKED_OBJECT - BROKEN\n");
+
 	SIMPLEQ_INIT(&matched_ids);
 
-	path_packdir = got_repo_get_path_objects_pack(repo);
+	path_packdir = got_repo_get_path_objects_pack();
 	if (path_packdir == NULL)
 		return got_error_from_errno("got_repo_get_path_objects_pack");
 
@@ -1475,7 +1482,7 @@ got_repo_match_object_id_prefix(struct got_object_id **id,
     const char *id_str_prefix, int obj_type, struct got_repository *repo)
 {
 	const struct got_error *err = NULL;
-	char *path_objects = got_repo_get_path_objects(repo);
+	char *path_objects = got_repo_get_path_objects();
 	char *object_dir = NULL;
 	size_t len;
 	int i;
