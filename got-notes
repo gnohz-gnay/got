@@ -120,5 +120,57 @@ actually inside.
    (it doesn't seem like it actually needs it). or maybe make a fake repo with
    just what is needed. Then we can go progressively higher up, looking for the
    repo, before we enter capability mode. 
+
 Remember to add the cap_getmode() in jemalloc
+
+TODO:
+Change to dynamic linking
+Fix #include order - many files
+many functions - change param order
+got_gotconfig_read - rights? ask
+got_lockfile_lock - rights?
+got_privsep_exec_child - ask about closefrom
+got_repo_get_path_git_dir_fd - make name not obnoxiously long
+
+For other commands, need a "get repo path from worktree directory" function
+  -> because got_worktree_open now needs to take in the repo's fd, since we
+     call it in Capability mode
+
+CHANGES:
+many paths become relative
+worktree_path gets converted to absolute path before entering cap mode
+find root repository directory before entering cap mode
+  -> got_repo_open now expects path to be the git directory of the repo
+add rights restrictions whenever openat gets called
+got_privsep_wait_for_child - use kqueue and pds instead of wait4
+got_privsep_exec_child - use fexecve instead of execl, programs statically linked
+got_lockfile_unlock - unlink now uses new fd field of struct
+
+add fd parameter, change open() style to openat() style:
+got_worktree_init
+got_worktree_open
+got_repo_init
+got_repo_open
+got_path_dir_is_empty
+got_fileindex_entry_update
+got_gotconfig_read
+got_lockfile_lock
+got_packidx_open
+parse_ref_file
+is_git_repo
+open_ref
+parse_gitconfig_file - now uses pdfork, for got_privsep_wait_for_child
+other small helpers...
+
+new functions:
+got_path_mkdirat
+got_opentemp_opendir
+got_repo_find_git_path
+got_repo_get_path_fd
+got_repo_get_path_git_dir_fd
+
+add fd field to structs:
+got_lockfile
+got_worktree
+got_repository
 
