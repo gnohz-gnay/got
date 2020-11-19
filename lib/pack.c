@@ -333,7 +333,7 @@ done:
 }
 
 const struct got_error *
-got_packidx_open(struct got_packidx **packidx, const char *path, int verify)
+got_packidx_open(struct got_packidx **packidx, int packdir_fd, const char *path, int verify)
 {
 	const struct got_error *err = NULL;
 	struct got_packidx *p;
@@ -346,7 +346,7 @@ got_packidx_open(struct got_packidx **packidx, const char *path, int verify)
 	if (p == NULL)
 		return got_error_from_errno("calloc");
 
-	p->fd = open(path, O_RDONLY | O_NOFOLLOW);
+	p->fd = openat(packdir_fd, path, O_RDONLY | O_NOFOLLOW);
 	if (p->fd == -1) {
 		err = got_error_from_errno2("open", path);
 		free(p);

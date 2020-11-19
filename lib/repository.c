@@ -1040,7 +1040,7 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 	}
 	/* No luck. Search the filesystem. */
 
-	path_packdir = GOT_OBJECTS_PACK_DIR;
+	path_packdir = got_repo_get_path_objects_pack();
 	if (path_packdir == NULL)
 		return got_error_from_errno("got_repo_get_path_objects_pack");
 
@@ -1065,9 +1065,9 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 		if (!is_packidx_filename(dent->d_name, dent->d_namlen))
 			continue;
 
-		if (asprintf(&path_packidx, "%s/%s", path_packdir,
-		    dent->d_name) == -1) {
-			err = got_error_from_errno("asprintf");
+		path_packidx = strdup(dent->d_name);
+		if (path_packidx == NULL) {
+			err = got_error_from_errno("strdup");
 			goto done;
 		}
 
@@ -1085,7 +1085,7 @@ got_repo_search_packidx(struct got_packidx **packidx, int *idx,
 			continue; /* already searched */
 		}
 
-		err = got_packidx_open(packidx, path_packidx, 0);
+		err = got_packidx_open(packidx, fd, path_packidx, 0);
 		if (err) {
 			free(path_packidx);
 			goto done;
@@ -1134,13 +1134,17 @@ read_packfile_hdr(int fd, struct got_packidx *packidx)
 }
 
 static const struct got_error *
-open_packfile(int *fd, const char *path_packfile, struct got_packidx *packidx)
+open_packfile(int *fd, int packdir_fd, const char *path_packfile, struct got_packidx *packidx)
 {
 	const struct got_error *err = NULL;
+	cap_rights_t rights;
 
-	*fd = open(path_packfile, O_RDONLY | O_NOFOLLOW);
+	*fd = openat(packdir_fd, path_packfile, O_RDONLY | O_NOFOLLOW);
 	if (*fd == -1)
-		return got_error_from_errno2("open", path_packfile);
+		return got_error_from_errno2("openat", path_packfile);
+	cap_rights_init(&rights, CAP_READ, CAP_FSTAT, CAP_MMAP_R);
+	if (caph_rights_limit(*fd, &rights) < 0)
+		return got_error_from_errno("caph_rights_limit");
 
 	if (packidx) {
 		err = read_packfile_hdr(*fd, packidx);
@@ -1161,6 +1165,14 @@ got_repo_cache_pack(struct got_pack **packp, struct got_repository *repo,
 	struct got_pack *pack = NULL;
 	struct stat sb;
 	size_t i;
+	cap_rights_t rights;
+
+	int fd = openat(got_repo_get_path_git_dir_fd(repo), GOT_OBJECTS_PACK_DIR, O_DIRECTORY);
+	if (fd == -1)
+		return got_error_from_errno2("openat", GOT_OBJECTS_PACK_DIR);
+	cap_rights_init(&rights, CAP_FSTAT, CAP_READ, CAP_WRITE, CAP_UNLINKAT, CAP_MMAP_R);
+	if (caph_rights_limit(fd, &rights) < 0)
+		return got_error_from_errno("caph_rights_limit");
 
 	if (packp)
 		*packp = NULL;
@@ -1190,7 +1202,7 @@ got_repo_cache_pack(struct got_pack **packp, struct got_repository *repo,
 		goto done;
 	}
 
-	err = open_packfile(&pack->fd, path_packfile, packidx);
+	err = open_packfile(&pack->fd, fd, path_packfile, packidx);
 	if (err)
 		goto done;
 
@@ -1324,7 +1336,7 @@ match_packed_object(struct got_object_id **unique_id,
 			break;
 		}
 
-		err = got_packidx_open(&packidx, path_packidx, 0);
+		err = got_packidx_open(&packidx, -1, path_packidx, 0);
 		free(path_packidx);
 		if (err)
 			break;
