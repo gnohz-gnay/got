@@ -672,7 +672,7 @@ read_gotconfig(struct got_repository *repo)
 	if (git_fd == -1)
 		return got_error_from_errno("got_repo_get_path_git_dir_fd");
 
-	err = got_gotconfig_read(&repo->gotconfig, gotconfig_path, git_fd);
+	err = got_gotconfig_read(&repo->gotconfig, git_fd);
 	free(gotconfig_path);
 	return err;
 }
@@ -1264,36 +1264,20 @@ got_repo_init(const char *repo_path, int fd)
 		return got_error(GOT_ERR_DIR_NOT_EMPTY);
 
 	for (i = 0; i < nitems(dirnames); i++) {
-		//if (asprintf(&path, "%s/%s", repo_path, dirnames[i]) == -1) {
-		//	return got_error_from_errno("asprintf");
-		//}
 		if (mkdirat(fd, dirnames[i], GOT_DEFAULT_DIR_MODE) == -1) {
 			return got_error_from_errno("mkdirat");
 		}
-		//err = got_path_mkdir(path);
-		//free(path);
-		//if (err)
-		//	return err;
 	}
 
-	//if (asprintf(&path, "%s/%s", repo_path, "description") == -1)
-	//	return got_error_from_errno("asprintf");
 	err = got_path_create_fileat(fd, "description", description_str);
-	//free(path);
 	if (err)
 		return err;
 
-	//if (asprintf(&path, "%s/%s", repo_path, GOT_HEAD_FILE) == -1)
-	//	return got_error_from_errno("asprintf");
 	err = got_path_create_fileat(fd, GOT_HEAD_FILE, headref_str);
-	//free(path);
 	if (err)
 		return err;
 
-	//if (asprintf(&path, "%s/%s", repo_path, "config") == -1)
-	//	return got_error_from_errno("asprintf");
 	err = got_path_create_fileat(fd, "config", gitconfig_str);
-	//free(path);
 	if (err)
 		return err;
 
