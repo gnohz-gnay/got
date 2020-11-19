@@ -23,8 +23,11 @@
 #define GOT_STRINGVAL_TMP(x) GOT_STRINGIFY_TMP(x)
 #define GOT_TMPDIR_STR GOT_STRINGVAL_TMP(GOT_TMPDIR)
 
-//NOTE: write description
-const struct got_error *got_opentempdir(void);
+/*
+ * Open the temporary file directory, for later use in
+ * Capability mode.
+ */
+const struct got_error *got_opentemp_opendir(void);
 
 /* Open a file descriptor to a new temporary file for writing.
  * The file is not visible in the filesystem. */
@@ -36,8 +39,7 @@ FILE *got_opentemp(void);
 
 /* Open a new temporary file for writing.
  * The file is visible in the filesystem. */
-const struct got_error *got_opentemp_named(char **, FILE **, const char *);
-const struct got_error *got_opentemp_named_REPLACE(int, char **, FILE **, const char *);
+const struct got_error *got_opentemp_named(int, char **, FILE **, const char *);
 
 /* Like got_opentemp_named() but returns a file descriptor instead of a FILE. */
 const struct got_error *got_opentemp_named_fd(char **, int *, const char *);

@@ -2753,7 +2753,7 @@ cmd_checkout(int argc, char *argv[])
 	if (error)
 		goto done;
 
-	error = got_opentempdir();
+	error = got_opentemp_opendir();
 	if (error != NULL)
 		goto done;
 
@@ -8328,7 +8328,8 @@ histedit_edit_script(struct got_histedit_list *histedit_cmds,
 	FILE *f = NULL;
 	char *path = NULL;
 
-	err = got_opentemp_named(&path, &f, "got-histedit");
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &path, &f, "got-histedit");
 	if (err)
 		return err;
 

@@ -32,7 +32,7 @@
 static int tempdir_fd;
 
 const struct got_error *
-got_opentempdir(void)
+got_opentemp_opendir(void)
 {
 	cap_rights_t rights;
 
@@ -82,38 +82,7 @@ got_opentemp(void)
 }
 
 const struct got_error *
-got_opentemp_named(char **path, FILE **outfile, const char *basepath)
-{
-	const struct got_error *err = NULL;
-	int fd;
-
-	*outfile = NULL;
-
-	if (asprintf(path, "%s-XXXXXX", basepath) == -1) {
-		*path = NULL;
-		return got_error_from_errno("asprintf");
-	}
-
-	fd = mkstemp(*path);
-	if (fd == -1) {
-		err = got_error_from_errno2("mkstemp", *path);
-		free(*path);
-		*path = NULL;
-		return err;
-	}
-
-	*outfile = fdopen(fd, "w+");
-	if (*outfile == NULL) {
-		err = got_error_from_errno2("fdopen", *path);
-		free(*path);
-		*path = NULL;
-	}
-
-	return err;
-}
-
-const struct got_error *
-got_opentemp_named_REPLACE(int dir_fd, char **path, FILE **outfile, const char *basepath)
+got_opentemp_named(int dir_fd, char **path, FILE **outfile, const char *basepath)
 {
 	const struct got_error *err = NULL;
 	int fd;

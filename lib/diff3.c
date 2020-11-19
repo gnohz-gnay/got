@@ -219,7 +219,8 @@ diffreg(BUF **d, const char *path1, const char *path2)
 		goto done;
 	}
 
-	err = got_opentemp_named(&outpath, &outfile,
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &outpath, &outfile,
 	    GOT_TMPDIR_STR "/got-diffreg");
 	if (err)
 		goto done;

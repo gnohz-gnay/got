@@ -98,7 +98,7 @@ update_meta_file(int worktree_fd, const char *name, const char *content)
 	}
 
 
-	err = got_opentemp_named_REPLACE(worktree_fd, &tmppath, &tmpfile, path);
+	err = got_opentemp_named(worktree_fd, &tmppath, &tmpfile, path);
 	if (err)
 		goto done;
 
@@ -834,7 +834,8 @@ merge_file(int *local_changes_subsumed, struct got_worktree *worktree,
 		goto done;
 	}
 
-	err = got_opentemp_named(&blob_orig_path, &f_orig, base_path);
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &blob_orig_path, &f_orig, base_path);
 	if (err)
 		goto done;
 	if (blob_orig) {
@@ -866,7 +867,8 @@ merge_file(int *local_changes_subsumed, struct got_worktree *worktree,
 			base_path = NULL;
 			goto done;
 		}
-		err = got_opentemp_named(&symlink_path, &symlinkf, base_path);
+		printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+		err = got_opentemp_named(-1, &symlink_path, &symlinkf, base_path);
 		if (err)
 			goto done;
 		target_len = readlink(ondisk_path, target_path,
@@ -990,7 +992,8 @@ install_symlink_conflict(const char *deriv_target,
 		goto done;
 	}
 
-	err = got_opentemp_named(&path, &f, "got-symlink-conflict");
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &path, &f, "got-symlink-conflict");
 	if (err)
 		goto done;
 
@@ -1166,7 +1169,8 @@ merge_blob(int *local_changes_subsumed, struct got_worktree *worktree,
 		goto done;
 	}
 
-	err = got_opentemp_named(&blob_deriv_path, &f_deriv, base_path);
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &blob_deriv_path, &f_deriv, base_path);
 	if (err)
 		goto done;
 	err = got_object_blob_dump_to_file(NULL, NULL, NULL, f_deriv,
@@ -2493,7 +2497,7 @@ sync_fileindex(struct got_fileindex *fileindex, int wt_fd, const char *fileindex
 	FILE *new_index = NULL;
 	struct timespec timeout;
 
-	err = got_opentemp_named_REPLACE(wt_fd, &new_fileindex_path, &new_index,
+	err = got_opentemp_named(wt_fd, &new_fileindex_path, &new_index,
 	    fileindex_path);
 	if (err)
 		goto done;
@@ -4381,7 +4385,8 @@ create_patched_content(char **path_outfile, int reverse_patch,
 	if (err)
 		goto done;
 
-	err = got_opentemp_named(&path1, &f1, "got-patched-blob");
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &path1, &f1, "got-patched-blob");
 	if (err)
 		goto done;
 
@@ -4394,7 +4399,8 @@ create_patched_content(char **path_outfile, int reverse_patch,
 	if (err)
 		goto done;
 
-	err = got_opentemp_named(path_outfile, &outfile, "got-patched-content");
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, path_outfile, &outfile, "got-patched-content");
 	if (err)
 		goto done;
 
@@ -7506,7 +7512,8 @@ create_unstaged_content(char **path_unstaged_content,
 	if (err)
 		goto done;
 
-	err = got_opentemp_named(&path1, &f1, "got-unstage-blob-base");
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &path1, &f1, "got-unstage-blob-base");
 	if (err)
 		goto done;
 
@@ -7518,7 +7525,8 @@ create_unstaged_content(char **path_unstaged_content,
 	if (err)
 		goto done;
 
-	err = got_opentemp_named(&path2, &f2, "got-unstage-blob-staged");
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, &path2, &f2, "got-unstage-blob-staged");
 	if (err)
 		goto done;
 
@@ -7531,11 +7539,13 @@ create_unstaged_content(char **path_unstaged_content,
 	if (err)
 		goto done;
 
-	err = got_opentemp_named(path_unstaged_content, &outfile,
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, path_unstaged_content, &outfile,
 	    "got-unstaged-content");
 	if (err)
 		goto done;
-	err = got_opentemp_named(path_new_staged_content, &rejectfile,
+	printf("GOT_OPENTEMP_NAMED - BROKEN\n");
+	err = got_opentemp_named(-1, path_new_staged_content, &rejectfile,
 	    "got-new-staged-content");
 	if (err)
 		goto done;
