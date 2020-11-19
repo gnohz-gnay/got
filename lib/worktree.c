@@ -1506,7 +1506,7 @@ install_blob(struct got_worktree *worktree, const char *ondisk_path,
 	fd = openat(worktree->root_fd, path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW,
 	    GOT_DEFAULT_FILE_MODE);
 	if (fd == -1) {
-		if (errno == ENOENT) { //NOTE: need to convert this part
+		if (errno == ENOENT) {
 			char *parent;
 			err = got_path_dirname(&parent, path);
 			if (err)
@@ -1599,9 +1599,10 @@ install_blob(struct got_worktree *worktree, const char *ondisk_path,
 			err = got_error_from_errno2("unlink", ondisk_path);
 			goto done;
 		}
-		if (rename(tmppath, ondisk_path) != 0) {
+		if (renameat(fd, tmppath, fd, ondisk_path) != 0) {
 			err = got_error_from_errno3("rename", tmppath,
 			    ondisk_path);
+			unlinkat(fd, tmppath, 0);
 			goto done;
 		}
 		free(tmppath);
@@ -2246,12 +2247,11 @@ diff_new(void *arg, struct got_tree_entry *te, const char *parent_path)
 	    == -1)
 		return got_error_from_errno("asprintf");
 
-	if (S_ISDIR(te->mode)) {
+	if (S_ISDIR(te->mode))
 		err = add_dir_on_disk(a->worktree, path);
-	} else {
+	else
 		err = update_blob(a->worktree, a->fileindex, NULL, te, path,
 		    a->repo, a->progress_cb, a->progress_arg);
-	}
 
 	free(path);
 	return err;

@@ -2745,8 +2745,7 @@ cmd_log(int argc, char *argv[])
 	if (cwd == NULL)
 		return got_error_from_errno("getcwd");
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd);
+	error = got_worktree_open(&worktree, cwd);
 	if (error && error->code != GOT_ERR_NOT_WORKTREE)
 		goto done;
 
@@ -3851,8 +3850,7 @@ cmd_diff(int argc, char *argv[])
 	if (cwd == NULL)
 		return got_error_from_errno("getcwd");
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd);
+	error = got_worktree_open(&worktree, cwd);
 	if (error && error->code != GOT_ERR_NOT_WORKTREE)
 		goto done;
 
@@ -4758,8 +4756,7 @@ cmd_blame(int argc, char *argv[])
 	if (cwd == NULL)
 		return got_error_from_errno("getcwd");
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd);
+	error = got_worktree_open(&worktree, cwd);
 	if (error && error->code != GOT_ERR_NOT_WORKTREE)
 		goto done;
 
@@ -5579,8 +5576,7 @@ cmd_tree(int argc, char *argv[])
 	if (cwd == NULL)
 		return got_error_from_errno("getcwd");
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd);
+	error = got_worktree_open(&worktree, cwd);
 	if (error && error->code != GOT_ERR_NOT_WORKTREE)
 		goto done;
 
@@ -6437,8 +6433,7 @@ tog_log_with_path(int argc, char *argv[])
 	if (cwd == NULL)
 		return got_error_from_errno("getcwd");
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd);
+	error = got_worktree_open(&worktree, cwd);
 	if (error && error->code != GOT_ERR_NOT_WORKTREE)
 		goto done;
 

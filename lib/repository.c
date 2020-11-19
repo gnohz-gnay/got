@@ -346,7 +346,7 @@ got_repo_get_cached_tag(struct got_repository *repo, struct got_object_id *id)
 }
 
 const struct got_error *
-got_repo_find_git_path(char **path) //NOTE: rights limit
+got_repo_find_git_path(char **path)
 {
 	const struct got_error *error;
 	char *parent_path, *repo_path;

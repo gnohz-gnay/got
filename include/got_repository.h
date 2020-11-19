@@ -18,7 +18,10 @@ struct got_repository;
 struct got_pathlist_head;
 struct got_tag_object;
 
-//NOTE: describe
+/*
+ * Given a path inside a repository, modify it to be
+ * the path to the root of the repository.
+ */
 const struct got_error *got_repo_find_git_path(char **);
 
 /* Open and close repositories. */
@@ -29,6 +32,7 @@ const struct got_error *got_repo_close(struct got_repository*);
 /* Obtain the on-disk path to the repository. */
 const char *got_repo_get_path(struct got_repository *);
 
+/* Obtain the file descriptor of the on-disk path. */
 int got_repo_get_path_fd(struct got_repository *);
 
 /*
@@ -37,6 +41,7 @@ int got_repo_get_path_fd(struct got_repository *);
  */
 const char *got_repo_get_path_git_dir(struct got_repository *);
 
+/* Obtain the file descriptor of the repository's .git directory. */
 int got_repo_get_path_git_dir_fd(struct got_repository *);
 
 /* Obtain the commit author name if parsed from gitconfig, else NULL. */
