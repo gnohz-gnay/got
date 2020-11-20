@@ -5551,7 +5551,8 @@ commit_worktree(struct got_object_id **new_commit_id,
 		goto done;
 	}
 	/* Lock the reference here to prevent concurrent modification. */
-	err = got_ref_open(&head_ref2, repo, head_ref_name, 1);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&head_ref2, -1, head_ref_name, 1);
 	if (err)
 		goto done;
 	err = got_ref_resolve(&head_commit_id2, repo, head_ref2);
@@ -5676,7 +5677,8 @@ got_worktree_commit(struct got_object_id **new_commit_id,
 	if (err)
 		goto done;
 
-	err = got_ref_open(&head_ref, repo, worktree->head_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&head_ref, -1, worktree->head_ref_name, 0);
 	if (err)
 		goto done;
 
@@ -5857,7 +5859,8 @@ got_worktree_rebase_prepare(struct got_reference **new_base_branch_ref,
 	if (err)
 		goto done;
 
-	err = got_ref_open(&wt_branch, repo, worktree->head_ref_name,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&wt_branch, -1, worktree->head_ref_name,
 	    0);
 	if (err)
 		goto done;
@@ -5979,16 +5982,19 @@ got_worktree_rebase_continue(struct got_object_id **commit_id,
 	if (err)
 		goto done;
 
-	err = got_ref_open(&branch_ref, repo, branch_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&branch_ref, -1, branch_ref_name, 0);
 	if (err)
 		goto done;
 
-	err = got_ref_open(branch, repo,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(branch, -1,
 	    got_ref_get_symref_target(branch_ref), 0);
 	if (err)
 		goto done;
 
-	err = got_ref_open(&commit_ref, repo, commit_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&commit_ref, -1, commit_ref_name, 0);
 	if (err)
 		goto done;
 
@@ -5996,12 +6002,14 @@ got_worktree_rebase_continue(struct got_object_id **commit_id,
 	if (err)
 		goto done;
 
-	err = got_ref_open(new_base_branch, repo,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(new_base_branch, -1,
 	    new_base_branch_ref_name, 0);
 	if (err)
 		goto done;
 
-	err = got_ref_open(tmp_branch, repo, tmp_branch_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(tmp_branch, -1, tmp_branch_name, 0);
 	if (err)
 		goto done;
 done:
@@ -6120,7 +6128,8 @@ store_commit_id(const char *commit_ref_name, struct got_object_id *commit_id,
 	const struct got_error *err;
 	struct got_reference *commit_ref = NULL;
 
-	err = got_ref_open(&commit_ref, repo, commit_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&commit_ref, -1, commit_ref_name, 0);
 	if (err) {
 		if (err->code != GOT_ERR_NOT_REF)
 			goto done;
@@ -6293,7 +6302,8 @@ rebase_commit(struct got_object_id **new_commit_id,
 		goto done;
 	}
 
-	err = got_ref_open(&head_ref, repo, worktree->head_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&head_ref, -1, worktree->head_ref_name, 0);
 	if (err)
 		goto done;
 
@@ -6363,7 +6373,8 @@ got_worktree_rebase_commit(struct got_object_id **new_commit_id,
 	if (err)
 		return err;
 
-	err = got_ref_open(&commit_ref, repo, commit_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&commit_ref, -1, commit_ref_name, 0);
 	if (err)
 		goto done;
 	err = got_ref_resolve(&commit_id, repo, commit_ref);
@@ -6400,7 +6411,8 @@ got_worktree_histedit_commit(struct got_object_id **new_commit_id,
 	if (err)
 		return err;
 
-	err = got_ref_open(&commit_ref, repo, commit_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&commit_ref, -1, commit_ref_name, 0);
 	if (err)
 		goto done;
 
@@ -6428,7 +6440,8 @@ delete_ref(const char *name, struct got_repository *repo)
 	const struct got_error *err;
 	struct got_reference *ref;
 
-	err = got_ref_open(&ref, repo, name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&ref, -1, name, 0);
 	if (err) {
 		if (err->code == GOT_ERR_NOT_REF)
 			return NULL;
@@ -6536,7 +6549,8 @@ got_worktree_rebase_abort(struct got_worktree *worktree,
 	if (err)
 		return err;
 
-	err = got_ref_open(&resolved, repo,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&resolved, -1,
 	    got_ref_get_symref_target(new_base_branch), 0);
 	if (err)
 		goto done;
@@ -6652,7 +6666,8 @@ got_worktree_histedit_prepare(struct got_reference **tmp_branch,
 	if (err)
 		goto done;
 
-	err = got_ref_open(&wt_branch, repo, worktree->head_ref_name,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&wt_branch, -1, worktree->head_ref_name,
 	    0);
 	if (err)
 		goto done;
@@ -6793,25 +6808,29 @@ got_worktree_histedit_continue(struct got_object_id **commit_id,
 	if (err)
 		goto done;
 
-	err = got_ref_open(branch_ref, repo, branch_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(branch_ref, -1, branch_ref_name, 0);
 	if (err)
 		goto done;
 
-	err = got_ref_open(&commit_ref, repo, commit_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&commit_ref, -1, commit_ref_name, 0);
 	if (err)
 		goto done;
 	err = got_ref_resolve(commit_id, repo, commit_ref);
 	if (err)
 		goto done;
 
-	err = got_ref_open(&base_commit_ref, repo, base_commit_ref_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&base_commit_ref, -1, base_commit_ref_name, 0);
 	if (err)
 		goto done;
 	err = got_ref_resolve(base_commit_id, repo, base_commit_ref);
 	if (err)
 		goto done;
 
-	err = got_ref_open(tmp_branch, repo, tmp_branch_name, 0);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(tmp_branch, -1, tmp_branch_name, 0);
 	if (err)
 		goto done;
 done:
@@ -6899,7 +6918,8 @@ got_worktree_histedit_abort(struct got_worktree *worktree,
 	if (err)
 		return err;
 
-	err = got_ref_open(&resolved, repo,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&resolved, -1,
 	    got_ref_get_symref_target(branch), 0);
 	if (err)
 		goto done;
@@ -6968,7 +6988,8 @@ got_worktree_histedit_complete(struct got_worktree *worktree,
 	if (err)
 		return err;
 
-	err = got_ref_open(&resolved, repo,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&resolved, -1,
 	    got_ref_get_symref_target(edited_branch), 0);
 	if (err)
 		goto done;
@@ -7054,11 +7075,13 @@ got_worktree_integrate_prepare(struct got_fileindex **fileindex,
 	if (err)
 		goto done;
 
-	err = got_ref_open(branch_ref, repo, refname, 1);
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(branch_ref, -1, refname, 1);
 	if (err)
 		goto done;
 
-	err = got_ref_open(base_branch_ref, repo,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(base_branch_ref, -1,
 	    got_worktree_get_head_ref_name(worktree), 1);
 done:
 	if (err) {
@@ -7413,7 +7436,8 @@ got_worktree_stage(struct got_worktree *worktree,
 	if (err)
 		return err;
 
-	err = got_ref_open(&head_ref, repo,
+	printf("GOT_REF_OPEN - BROKEN\n");
+	err = got_ref_open(&head_ref, -1,
 	    got_worktree_get_head_ref_name(worktree), 0);
 	if (err)
 		goto done;
