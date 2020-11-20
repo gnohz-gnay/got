@@ -1907,12 +1907,11 @@ done:
  * we had to run a full content comparison to find out.
  */
 static const struct got_error *
-sync_timestamps(char *ondisk_path, unsigned char status,
+sync_timestamps(int wt_fd, const char *path, unsigned char status,
     struct got_fileindex_entry *ie, struct stat *sb)
 {
 	if (status == GOT_STATUS_NO_CHANGE && stat_info_differs(ie, sb)) {
-		printf("GOT_FILEINDEX_ENTRY_UPDATE - BROKEN\n");
-		return got_fileindex_entry_update(ie, -1, ondisk_path,
+		return got_fileindex_entry_update(ie, wt_fd, path,
 		    ie->blob_sha1, ie->commit_sha1, 1);
 	}
 
@@ -1966,7 +1965,7 @@ update_blob(struct got_worktree *worktree,
 		if (got_fileindex_entry_has_commit(ie) &&
 		    memcmp(ie->commit_sha1, worktree->base_commit_id->sha1,
 		    SHA1_DIGEST_LENGTH) == 0) {
-			err = sync_timestamps(ondisk_path, status, ie, &sb);
+			err = sync_timestamps(worktree->root_fd, path, status, ie, &sb);
 			if (err)
 				goto done;
 			err = (*progress_cb)(progress_arg, GOT_STATUS_EXISTS,
@@ -1976,7 +1975,7 @@ update_blob(struct got_worktree *worktree,
 		if (got_fileindex_entry_has_blob(ie) &&
 		    memcmp(ie->blob_sha1, te->id.sha1,
 		    SHA1_DIGEST_LENGTH) == 0) {
-			err = sync_timestamps(ondisk_path, status, ie, &sb);
+			err = sync_timestamps(worktree->root_fd, path, status, ie, &sb);
 			goto done;
 		}
 	}
@@ -2071,8 +2070,7 @@ update_blob(struct got_worktree *worktree,
 			goto done;
 
 		if (ie) {
-			printf("GOT_FILEINDEX_ENTRY_UPDATE - BROKEN\n");
-			err = got_fileindex_entry_update(ie, -1, ondisk_path,
+			err = got_fileindex_entry_update(ie, worktree->root_fd, path,
 			    blob->id.sha1, worktree->base_commit_id->sha1, 1);
 		} else {
 			err = create_fileindex_entry(&ie, fileindex,
