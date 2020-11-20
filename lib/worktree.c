@@ -1940,7 +1940,7 @@ update_blob(struct got_worktree *worktree,
 			err = got_error_path(ie->path, GOT_ERR_FILE_STAGED);
 			goto done;
 		}
-		err = get_file_status(&status, &sb, ie, ondisk_path, -1, NULL,
+		err = get_file_status(&status, &sb, ie, ondisk_path, worktree->root_fd, path,
 		    repo);
 		if (err)
 			goto done;
