@@ -377,12 +377,12 @@ cmd_init(int argc, char *argv[])
 
 	repo_fd = open(repo_path, O_CREAT | O_DIRECTORY);
 
-	if (caph_enter() < 0)
-		err(1, "cap_enter");
-
 	error = apply_unveil(repo_path, 0, NULL);
 	if (error)
 		goto done;
+
+	if (caph_enter() < 0)
+		err(1, "cap_enter");
 
 	error = got_repo_init(repo_path, repo_fd);
 done:
