@@ -162,9 +162,9 @@ got_repo_get_path_refs(void)
 }
 
 char *
-got_repo_get_path_packed_refs(struct got_repository *repo)
+got_repo_get_path_packed_refs(void)
 {
-	return get_path_git_child(repo, GOT_PACKED_REFS_FILE);
+	return strdup(GOT_PACKED_REFS_FILE);
 }
 
 static char *
@@ -205,12 +205,6 @@ is_git_repo(int git_fd)
 	int ret = 0;
 	struct stat sb;
 	struct got_reference *head_ref;
-	struct got_repository *repo;
-
-	repo = calloc(1, sizeof(*repo));
-	if (repo == NULL) {
-		goto done;
-	}
 
 	if (fstat(git_fd, &sb) == -1)
 		goto done;
@@ -233,8 +227,7 @@ is_git_repo(int git_fd)
 		goto done;
 
 	/* Check if the HEAD reference can be opened. */
-	repo->path_git_dir_fd = git_fd;
-	if (got_ref_open(&head_ref, repo, GOT_REF_HEAD, 0) != NULL)
+	if (got_ref_open(&head_ref, git_fd, GOT_REF_HEAD, 0) != NULL)
 		goto done;
 	got_ref_close(head_ref);
 

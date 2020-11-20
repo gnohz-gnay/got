@@ -260,7 +260,7 @@ is_well_known_ref(const char *refname)
 }
 
 static char *
-get_refs_dir_path(struct got_repository *repo, const char *refname)
+get_refs_dir_path(const char *refname)
 {
 	if (is_well_known_ref(refname) || strncmp(refname, "refs/", 5) == 0)
 		return strdup(".");
@@ -443,7 +443,7 @@ done:
 }
 
 const struct got_error *
-got_ref_open(struct got_reference **ref, struct got_repository *repo,
+got_ref_open(struct got_reference **ref, int git_dir_fd,
    const char *refname, int lock)
 {
 	const struct got_error *err = NULL;
@@ -454,11 +454,10 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 	size_t i;
 	int well_known = is_well_known_ref(refname);
 	struct got_lockfile *lf = NULL;
-	int git_dir_fd = got_repo_get_path_git_dir_fd(repo);
 
 	*ref = NULL;
 
-	path_refs = get_refs_dir_path(repo, refname);
+	path_refs = get_refs_dir_path(refname);
 	if (path_refs == NULL) {
 		err = got_error_from_errno2("get_refs_dir_path", refname);
 		goto done;
@@ -480,7 +479,7 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 
 		printf("CODE BELOW THIS HAS NOT BEEN CAPSIZED\n");
 
-		packed_refs_path = got_repo_get_path_packed_refs(repo);
+		packed_refs_path = got_repo_get_path_packed_refs();
 		if (packed_refs_path == NULL) {
 			err = got_error_from_errno(
 			    "got_repo_get_path_packed_refs");
@@ -489,7 +488,7 @@ got_ref_open(struct got_reference **ref, struct got_repository *repo,
 
 		if (lock) {
 			printf("open NEED TO TEST %s\n", packed_refs_path);
-			err = got_lockfile_lock(&lf, got_repo_get_path_git_dir_fd(repo), packed_refs_path);
+			err = got_lockfile_lock(&lf, git_dir_fd, packed_refs_path);
 			if (err)
 				goto done;
 		}
@@ -594,7 +593,8 @@ resolve_symbolic_ref(struct got_reference **resolved,
 	struct got_reference *nextref;
 	const struct got_error *err;
 
-	err = got_ref_open(&nextref, repo, ref->ref.symref.ref, 0);
+	err = got_ref_open(&nextref, got_repo_get_path_git_dir_fd(repo),
+	    ref->ref.symref.ref, 0);
 	if (err)
 		return err;
 
@@ -892,7 +892,7 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 	struct got_reflist_entry *new;
 
 	if (ref_namespace == NULL || ref_namespace[0] == '\0') {
-		path_refs = get_refs_dir_path(repo, GOT_REF_HEAD);
+		path_refs = get_refs_dir_path(GOT_REF_HEAD);
 		if (path_refs == NULL) {
 			err = got_error_from_errno("get_refs_dir_path");
 			goto done;
@@ -910,7 +910,7 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 	} else {
 		/* Try listing a single reference. */
 		const char *refname = ref_namespace;
-		path_refs = get_refs_dir_path(repo, refname);
+		path_refs = get_refs_dir_path(refname);
 		if (path_refs == NULL) {
 			err = got_error_from_errno("get_refs_dir_path");
 			goto done;
@@ -957,7 +957,7 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 
 	/* Gather on-disk refs before parsing packed-refs. */
 	free(path_refs);
-	path_refs = get_refs_dir_path(repo, "");
+	path_refs = get_refs_dir_path("");
 	if (path_refs == NULL) {
 		err = got_error_from_errno("get_refs_dir_path");
 		goto done;
@@ -972,7 +972,7 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 	 * The packed-refs file may contain redundant entries, in which
 	 * case on-disk refs take precedence.
 	 */
-	packed_refs_path = got_repo_get_path_packed_refs(repo);
+	packed_refs_path = got_repo_get_path_packed_refs();
 	if (packed_refs_path == NULL) {
 		err = got_error_from_errno("got_repo_get_path_packed_refs");
 		goto done;
@@ -1097,7 +1097,7 @@ got_ref_write(struct got_reference *ref, struct got_repository *repo)
 	struct stat sb;
 	int git_fd = got_repo_get_path_git_dir_fd(repo);
 
-	path_refs = get_refs_dir_path(repo, name);
+	path_refs = get_refs_dir_path(name);
 	if (path_refs == NULL) {
 		err = got_error_from_errno2("get_refs_dir_path", name);
 		goto done;
@@ -1205,7 +1205,7 @@ delete_packed_ref(struct got_reference *delref, struct got_repository *repo)
 
 	SIMPLEQ_INIT(&refs);
 
-	packed_refs_path = got_repo_get_path_packed_refs(repo);
+	packed_refs_path = got_repo_get_path_packed_refs();
 	if (packed_refs_path == NULL)
 		return got_error_from_errno("got_repo_get_path_packed_refs");
 
@@ -1345,7 +1345,7 @@ delete_loose_ref(struct got_reference *ref, struct got_repository *repo)
 	char *path_refs = NULL, *path = NULL;
 	struct got_lockfile *lf = NULL;
 
-	path_refs = get_refs_dir_path(repo, name);
+	path_refs = get_refs_dir_path(name);
 	if (path_refs == NULL) {
 		err = got_error_from_errno2("get_refs_dir_path", name);
 		goto done;

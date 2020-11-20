@@ -98,7 +98,7 @@ const struct got_gotconfig *got_repo_get_gotconfig(struct got_repository *);
 char *got_repo_get_path_objects(void);
 char *got_repo_get_path_objects_pack(void);
 char *got_repo_get_path_refs(void);
-char *got_repo_get_path_packed_refs(struct got_repository *);
+char *got_repo_get_path_packed_refs(void);
 char *got_repo_get_path_gitconfig(struct got_repository *);
 char *got_repo_get_path_gotconfig(void);
 
