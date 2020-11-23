@@ -623,14 +623,6 @@ got_worktree_set_base_commit_id(struct got_worktree *worktree,
 	const struct got_error *err;
 	struct got_object *obj = NULL;
 	char *id_str = NULL;
-	char *path_got = NULL;
-
-	if (asprintf(&path_got, "%s/%s", worktree->root_path,
-	    GOT_WORKTREE_GOT_DIR) == -1) {
-		err = got_error_from_errno("asprintf");
-		path_got = NULL;
-		goto done;
-	}
 
 	err = got_object_open(&obj, repo, commit_id);
 	if (err)
@@ -645,8 +637,7 @@ got_worktree_set_base_commit_id(struct got_worktree *worktree,
 	err = got_object_id_str(&id_str, commit_id);
 	if (err)
 		goto done;
-	printf("UPDATE_META_FILE - BROKEN\n");
-	err = update_meta_file(path_got, GOT_WORKTREE_BASE_COMMIT, id_str);
+	err = update_meta_file(worktree->root_fd, GOT_WORKTREE_BASE_COMMIT, id_str);
 	if (err)
 		goto done;
 

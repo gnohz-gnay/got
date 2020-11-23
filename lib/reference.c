@@ -819,7 +819,10 @@ gather_on_disk_refs(struct got_reflist_head *refs, const char *path_refs,
 	if (asprintf(&path_subdir, "%s/%s", path_refs, subdir) == -1)
 		return got_error_from_errno("asprintf");
 
-	d = opendir(path_subdir);
+	int fd = openat(got_repo_get_path_git_dir_fd(repo), path_subdir, O_DIRECTORY);
+	if (fd == -1)
+		goto done;
+	d = fdopendir(fd);
 	if (d == NULL)
 		goto done;
 
@@ -978,7 +981,8 @@ got_ref_list(struct got_reflist_head *refs, struct got_repository *repo,
 		goto done;
 	}
 
-	f = fopen(packed_refs_path, "r");
+	int fd = openat(got_repo_get_path_git_dir_fd(repo), packed_refs_path, O_RDONLY);
+	f = fdopen(fd, "r");
 	free(packed_refs_path);
 	if (f) {
 		char *line;

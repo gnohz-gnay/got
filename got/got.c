@@ -2756,7 +2756,7 @@ cmd_checkout(int argc, char *argv[])
 		goto done;
 
 	int repo_fd = open(repo_path, O_DIRECTORY);
-	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET,
+	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET, CAP_MKDIRAT,
 	    CAP_SEEK, CAP_CREATE, CAP_READ, CAP_WRITE, CAP_UNLINKAT, CAP_FLOCK, CAP_FCHMOD, CAP_MMAP_R);
 	if (caph_rights_limit(repo_fd, &rights) < 0)
 		err(1, "caph_rights_limit");

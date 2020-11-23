@@ -426,7 +426,7 @@ open_repo(struct got_repository *repo, int fd, const char *path)
 	repo->path_fd = fd;
 	repo->path_git_dir_fd = openat(fd, GOT_GIT_DIR, O_DIRECTORY | O_CREAT);
 
-	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET,
+	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET, CAP_MKDIRAT,
 	    CAP_CREATE, CAP_READ, CAP_WRITE, CAP_UNLINKAT, CAP_FLOCK, CAP_FCHMOD, CAP_MMAP_R);
 	if (caph_rights_limit(repo->path_git_dir_fd, &rights) < 0) {
 		err = got_error_from_errno("caph_rights_limit");
@@ -1296,18 +1296,22 @@ match_packed_object(struct got_object_id **unique_id,
 	char *path_packidx;
 	struct got_object_id_queue matched_ids;
 
-	printf("MATCH_PACKED_OBJECT - BROKEN\n");
-
 	SIMPLEQ_INIT(&matched_ids);
 
 	path_packdir = got_repo_get_path_objects_pack();
 	if (path_packdir == NULL)
 		return got_error_from_errno("got_repo_get_path_objects_pack");
 
-	packdir = opendir(path_packdir);
+	int fd = openat(got_repo_get_path_git_dir_fd(repo), path_packdir, O_DIRECTORY);
+	if (fd == -1) {
+		if (errno != ENOENT)
+			err = got_error_from_errno2("openat", path_packdir);
+		goto done;
+	}
+	packdir = fdopendir(fd);
 	if (packdir == NULL) {
 		if (errno != ENOENT)
-			err = got_error_from_errno2("opendir", path_packdir);
+			err = got_error_from_errno2("fdopendir", path_packdir);
 		goto done;
 	}
 
@@ -1319,13 +1323,13 @@ match_packed_object(struct got_object_id **unique_id,
 		if (!is_packidx_filename(dent->d_name, dent->d_namlen))
 			continue;
 
-		if (asprintf(&path_packidx, "%s/%s", path_packdir,
-		    dent->d_name) == -1) {
-			err = got_error_from_errno("asprintf");
+		path_packidx = strdup(dent->d_name);
+		if (path_packidx == NULL) {
+			err = got_error_from_errno("strdup");
 			break;
 		}
 
-		err = got_packidx_open(&packidx, -1, path_packidx, 0);
+		err = got_packidx_open(&packidx, fd, path_packidx, 0);
 		free(path_packidx);
 		if (err)
 			break;
@@ -1392,13 +1396,18 @@ match_loose_object(struct got_object_id **unique_id, const char *path_objects,
 		goto done;
 	}
 
-	dir = opendir(path);
-	if (dir == NULL) {
+	int fd = openat(got_repo_get_path_git_dir_fd(repo), path, O_DIRECTORY);
+	if (fd == -1) {
 		if (errno == ENOENT) {
 			err = NULL;
 			goto done;
 		}
-		err = got_error_from_errno2("opendir", path);
+		err = got_error_from_errno2("openat", path);
+		goto done;
+	}
+	dir = fdopendir(fd);
+	if (dir == NULL) {
+		err = got_error_from_errno2("fdopendir", path);
 		goto done;
 	}
 	while ((dent = readdir(dir)) != NULL) {

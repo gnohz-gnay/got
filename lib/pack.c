@@ -348,7 +348,7 @@ got_packidx_open(struct got_packidx **packidx, int packdir_fd, const char *path,
 
 	p->fd = openat(packdir_fd, path, O_RDONLY | O_NOFOLLOW);
 	if (p->fd == -1) {
-		err = got_error_from_errno2("open", path);
+		err = got_error_from_errno2("openat", path);
 		free(p);
 		return err;
 	}
