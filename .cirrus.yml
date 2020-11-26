@@ -6,7 +6,6 @@ env:
   CIRRUS_CLONE_DEPTH: 1
 
 task:
-  timeout_in: 30m
   pkg_install_script:
   - pkg install -y git-lite
   script:
