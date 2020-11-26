@@ -666,7 +666,7 @@ read_gotconfig(struct got_repository *repo)
 	if (git_fd == -1)
 		return got_error_from_errno("got_repo_get_path_git_dir_fd");
 
-	err = got_gotconfig_read(&repo->gotconfig, git_fd);
+	err = got_gotconfig_read(&repo->gotconfig, gotconfig_path, git_fd);
 	free(gotconfig_path);
 	return err;
 }

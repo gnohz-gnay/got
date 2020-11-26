@@ -188,14 +188,7 @@ parse_ref_file(struct got_reference **ref, const char *name,
 	}
 
 	int fd = openat(repo_fd, absname, 0);
-	cap_rights_init(&rights, CAP_READ, CAP_FSTAT, CAP_FCNTL);
-	if (caph_rights_limit(fd, &rights) < 0) {
-		err = got_error_from_errno("caph_rights_limit");
-		return err;
-	}
-
-	f = fdopen(fd, "rb");
-	if (f == NULL) {
+	if (fd == -1) {
 		if (errno != ENOTDIR && errno != ENOENT)
 			err = got_error_from_errno2("fopen", abspath);
 		else
@@ -204,6 +197,13 @@ parse_ref_file(struct got_reference **ref, const char *name,
 			got_lockfile_unlock(lf);
 		return err;
 	}
+	cap_rights_init(&rights, CAP_READ, CAP_FSTAT, CAP_FCNTL);
+	if (caph_rights_limit(fd, &rights) < 0) {
+		err = got_error_from_errno("caph_rights_limit");
+		return err;
+	}
+
+	f = fdopen(fd, "rb");
 	linelen = getline(&line, &linesize, f);
 	if (linelen == -1) {
 		if (feof(f))
@@ -477,8 +477,6 @@ got_ref_open(struct got_reference **ref, int git_dir_fd,
 				goto done;
 		}
 
-		printf("CODE BELOW THIS HAS NOT BEEN CAPSIZED\n");
-
 		packed_refs_path = got_repo_get_path_packed_refs();
 		if (packed_refs_path == NULL) {
 			err = got_error_from_errno(
@@ -487,12 +485,13 @@ got_ref_open(struct got_reference **ref, int git_dir_fd,
 		}
 
 		if (lock) {
-			printf("open NEED TO TEST %s\n", packed_refs_path);
+			printf("got_lockfile_lock NEED TO TEST %s\n", packed_refs_path);
 			err = got_lockfile_lock(&lf, git_dir_fd, packed_refs_path);
 			if (err)
 				goto done;
 		}
-		f = fopen(packed_refs_path, "rb");
+		int fd = openat(git_dir_fd, packed_refs_path, 0);
+		f = fdopen(fd, "rb");
 		free(packed_refs_path);
 		if (f != NULL) {
 			err = open_packed_ref(ref, f, subdirs, nitems(subdirs),
