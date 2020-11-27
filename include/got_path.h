@@ -132,3 +132,4 @@ const struct got_error *got_path_find_prog(char **, const char *);
 
 /* Create a new file at a specified path, with optional content. */
 const struct got_error *got_path_create_file(const char *, const char *);
+const struct got_error *got_path_create_fileat(int, const char *, const char *);

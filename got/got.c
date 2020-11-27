@@ -2711,6 +2711,20 @@ cmd_checkout(int argc, char *argv[])
 			goto done;
 		}
 	}
+	int worktree_fd = open(worktree_path, O_DIRECTORY);
+	if (worktree_fd == -1) {
+		error = got_error_from_errno2("open", worktree_path);
+		goto done;
+	}
+
+	/* Make worktree path absolute */
+	char *worktree_path_abs = realpath(worktree_path, NULL);
+	if (worktree_path_abs == NULL) {
+		error = got_error_from_errno2("realpath", worktree_path_abs);
+		goto done;
+	}
+	free(worktree_path);
+	worktree_path = worktree_path_abs;
 
 	error = apply_unveil(got_repo_get_path(repo), 0, worktree_path);
 	if (error)
@@ -2720,7 +2734,7 @@ cmd_checkout(int argc, char *argv[])
 	if (error != NULL)
 		goto done;
 
-	error = got_worktree_init(worktree_path, head_ref, path_prefix, repo);
+	error = got_worktree_init(worktree_fd, worktree_path, head_ref, path_prefix, repo);
 	if (error != NULL && !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 		goto done;
 

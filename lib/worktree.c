@@ -67,15 +67,15 @@
 #define GOT_MERGE_LABEL_BASE	"3-way merge base"
 
 static const struct got_error *
-create_meta_file(const char *path_got, const char *name, const char *content)
+create_meta_file(int worktree_fd, const char *name, const char *content)
 {
 	const struct got_error *err = NULL;
 	char *path;
 
-	if (asprintf(&path, "%s/%s", path_got, name) == -1)
+	if (asprintf(&path, "%s/%s", GOT_WORKTREE_GOT_DIR, name) == -1)
 		return got_error_from_errno("asprintf");
 
-	err = got_path_create_file(path, content);
+	err = got_path_create_fileat(worktree_fd, path, content);
 	free(path);
 	return err;
 }
@@ -120,7 +120,7 @@ done:
 }
 
 static const struct got_error *
-read_meta_file(char **content, const char *path_got, const char *name)
+read_meta_file(char **content, int worktree_fd, const char *path_got, const char *name)
 {
 	const struct got_error *err = NULL;
 	char *path;
@@ -136,7 +136,7 @@ read_meta_file(char **content, const char *path_got, const char *name)
 		goto done;
 	}
 
-	fd = open(path, O_RDONLY | O_NOFOLLOW);
+	fd = openat(worktree_fd, path, O_RDONLY | O_NOFOLLOW);
 	if (fd == -1) {
 		if (errno == ENOENT)
 			err = got_error_path(path, GOT_ERR_WORKTREE_META);
@@ -204,7 +204,7 @@ write_head_ref(const char *path_got, struct got_reference *head_ref)
 }
 
 const struct got_error *
-got_worktree_init(const char *path, struct got_reference *head_ref,
+got_worktree_init(int fd, const char *path, struct got_reference *head_ref,
     const char *prefix, struct got_repository *repo)
 {
 	const struct got_error *err = NULL;
@@ -237,29 +237,23 @@ got_worktree_init(const char *path, struct got_reference *head_ref,
 			return got_error_from_errno("asprintf");
 	}
 
-	/* Create top-level directory (may already exist). */
-	if (mkdir(path, GOT_DEFAULT_DIR_MODE) == -1 && errno != EEXIST) {
-		err = got_error_from_errno2("mkdir", path);
-		goto done;
-	}
-
 	/* Create .got directory (may already exist). */
 	if (asprintf(&path_got, "%s/%s", path, GOT_WORKTREE_GOT_DIR) == -1) {
 		err = got_error_from_errno("asprintf");
 		goto done;
 	}
-	if (mkdir(path_got, GOT_DEFAULT_DIR_MODE) == -1 && errno != EEXIST) {
+	if (mkdirat(fd, GOT_WORKTREE_GOT_DIR, GOT_DEFAULT_DIR_MODE) == -1 && errno != EEXIST) {
 		err = got_error_from_errno2("mkdir", path_got);
 		goto done;
 	}
 
 	/* Create an empty lock file. */
-	err = create_meta_file(path_got, GOT_WORKTREE_LOCK, NULL);
+	err = create_meta_file(fd, GOT_WORKTREE_LOCK, NULL);
 	if (err)
 		goto done;
 
 	/* Create an empty file index. */
-	err = create_meta_file(path_got, GOT_WORKTREE_FILE_INDEX, NULL);
+	err = create_meta_file(fd, GOT_WORKTREE_FILE_INDEX, NULL);
 	if (err)
 		goto done;
 
@@ -272,18 +266,18 @@ got_worktree_init(const char *path, struct got_reference *head_ref,
 	err = got_object_id_str(&basestr, commit_id);
 	if (err)
 		goto done;
-	err = create_meta_file(path_got, GOT_WORKTREE_BASE_COMMIT, basestr);
+	err = create_meta_file(fd, GOT_WORKTREE_BASE_COMMIT, basestr);
 	if (err)
 		goto done;
 
 	/* Store path to repository. */
-	err = create_meta_file(path_got, GOT_WORKTREE_REPOSITORY,
+	err = create_meta_file(fd, GOT_WORKTREE_REPOSITORY,
 	    got_repo_get_path(repo));
 	if (err)
 		goto done;
 
 	/* Store in-repository path prefix. */
-	err = create_meta_file(path_got, GOT_WORKTREE_PATH_PREFIX,
+	err = create_meta_file(fd, GOT_WORKTREE_PATH_PREFIX,
 	    absprefix ? absprefix : prefix);
 	if (err)
 		goto done;
@@ -299,7 +293,7 @@ got_worktree_init(const char *path, struct got_reference *head_ref,
 		err = got_error_uuid(uuid_status, "uuid_to_string");
 		goto done;
 	}
-	err = create_meta_file(path_got, GOT_WORKTREE_UUID, uuidstr);
+	err = create_meta_file(fd, GOT_WORKTREE_UUID, uuidstr);
 	if (err)
 		goto done;
 
@@ -308,7 +302,7 @@ got_worktree_init(const char *path, struct got_reference *head_ref,
 		err = got_error_from_errno("asprintf");
 		goto done;
 	}
-	err = create_meta_file(path_got, GOT_WORKTREE_FORMAT, formatstr);
+	err = create_meta_file(fd, GOT_WORKTREE_FORMAT, formatstr);
 	if (err)
 		goto done;
 
@@ -323,10 +317,9 @@ done:
 }
 
 static const struct got_error *
-open_worktree(struct got_worktree **worktree, const char *path)
+open_worktree(struct got_worktree **worktree, int worktree_fd, const char *path)
 {
 	const struct got_error *err = NULL;
-	char *path_got;
 	char *formatstr = NULL;
 	char *uuidstr = NULL;
 	char *path_lock = NULL;
@@ -338,26 +331,20 @@ open_worktree(struct got_worktree **worktree, const char *path)
 
 	*worktree = NULL;
 
-	if (asprintf(&path_got, "%s/%s", path, GOT_WORKTREE_GOT_DIR) == -1) {
-		err = got_error_from_errno("asprintf");
-		path_got = NULL;
-		goto done;
-	}
-
-	if (asprintf(&path_lock, "%s/%s", path_got, GOT_WORKTREE_LOCK) == -1) {
+	if (asprintf(&path_lock, "%s/%s", GOT_WORKTREE_GOT_DIR, GOT_WORKTREE_LOCK) == -1) {
 		err = got_error_from_errno("asprintf");
 		path_lock = NULL;
 		goto done;
 	}
 
-	fd = open(path_lock, O_RDWR | O_EXLOCK | O_NONBLOCK);
+	fd = openat(worktree_fd, path_lock, O_RDWR | O_EXLOCK | O_NONBLOCK);
 	if (fd == -1) {
 		err = (errno == EWOULDBLOCK ? got_error(GOT_ERR_WORKTREE_BUSY)
 		    : got_error_from_errno2("open", path_lock));
 		goto done;
 	}
 
-	err = read_meta_file(&formatstr, path_got, GOT_WORKTREE_FORMAT);
+	err = read_meta_file(&formatstr, worktree_fd, GOT_WORKTREE_GOT_DIR, GOT_WORKTREE_FORMAT);
 	if (err)
 		goto done;
 
@@ -379,27 +366,27 @@ open_worktree(struct got_worktree **worktree, const char *path)
 	}
 	(*worktree)->lockfd = -1;
 
-	(*worktree)->root_path = realpath(path, NULL);
+	(*worktree)->root_path = strdup(path);
 	if ((*worktree)->root_path == NULL) {
-		err = got_error_from_errno2("realpath", path);
+		err = got_error_from_errno2("strdup", path);
 		goto done;
 	}
-	err = read_meta_file(&(*worktree)->repo_path, path_got,
+	err = read_meta_file(&(*worktree)->repo_path, worktree_fd, GOT_WORKTREE_GOT_DIR,
 	    GOT_WORKTREE_REPOSITORY);
 	if (err)
 		goto done;
 
-	err = read_meta_file(&(*worktree)->path_prefix, path_got,
+	err = read_meta_file(&(*worktree)->path_prefix, worktree_fd, GOT_WORKTREE_GOT_DIR,
 	    GOT_WORKTREE_PATH_PREFIX);
 	if (err)
 		goto done;
 
-	err = read_meta_file(&base_commit_id_str, path_got,
+	err = read_meta_file(&base_commit_id_str, worktree_fd, GOT_WORKTREE_GOT_DIR,
 	    GOT_WORKTREE_BASE_COMMIT);
 	if (err)
 		goto done;
 
-	err = read_meta_file(&uuidstr, path_got, GOT_WORKTREE_UUID);
+	err = read_meta_file(&uuidstr, worktree_fd, GOT_WORKTREE_GOT_DIR, GOT_WORKTREE_UUID);
 	if (err)
 		goto done;
 	uuid_from_string(uuidstr, &(*worktree)->uuid, &uuid_status);
@@ -417,7 +404,7 @@ open_worktree(struct got_worktree **worktree, const char *path)
 	if (err)
 		goto done;
 
-	err = read_meta_file(&(*worktree)->head_ref_name, path_got,
+	err = read_meta_file(&(*worktree)->head_ref_name, worktree_fd, GOT_WORKTREE_GOT_DIR,
 	    GOT_WORKTREE_HEAD_REF);
 	if (err)
 		goto done;
@@ -431,10 +418,14 @@ open_worktree(struct got_worktree **worktree, const char *path)
 
 	err = got_gotconfig_read(&(*worktree)->gotconfig,
 	    (*worktree)->gotconfig_path);
+
+	int repo_fd = open(got_repo_get_path_git_dir(repo), O_DIRECTORY);
+
+	(*worktree)->root_fd = worktree_fd;
+	(*worktree)->repo_fd = repo_fd;
 done:
 	if (repo)
 		got_repo_close(repo);
-	free(path_got);
 	free(path_lock);
 	free(base_commit_id_str);
 	free(uuidstr);
@@ -456,15 +447,20 @@ got_worktree_open(struct got_worktree **worktree, const char *path)
 {
 	const struct got_error *err = NULL;
 	char *worktree_path;
+	int worktree_fd;
 
 	worktree_path = strdup(path);
 	if (worktree_path == NULL)
 		return got_error_from_errno("strdup");
 
+	worktree_fd = open(worktree_path, O_DIRECTORY);
+	if (worktree_fd == -1)
+		return got_error_from_errno2("open", worktree_path);
+
 	for (;;) {
 		char *parent_path;
 
-		err = open_worktree(worktree, worktree_path);
+		err = open_worktree(worktree, worktree_fd, worktree_path);
 		if (err && !(err->code == GOT_ERR_ERRNO && errno == ENOENT)) {
 			free(worktree_path);
 			return err;
@@ -484,7 +480,9 @@ got_worktree_open(struct got_worktree **worktree, const char *path)
 			break;
 		}
 		free(worktree_path);
+		close(worktree_fd);
 		worktree_path = parent_path;
+		worktree_fd = open(parent_path, O_DIRECTORY);
 	}
 
 	free(worktree_path);
@@ -507,6 +505,8 @@ got_worktree_close(struct got_worktree *worktree)
 	free(worktree->gotconfig_path);
 	got_gotconfig_free(worktree->gotconfig);
 	free(worktree);
+	close(worktree->root_fd);
+	close(worktree->repo_fd);
 	return err;
 }
 

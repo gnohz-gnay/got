@@ -514,10 +514,16 @@ got_path_find_prog(char **filename, const char *prog)
 const struct got_error *
 got_path_create_file(const char *path, const char *content)
 {
+	return got_path_create_fileat(AT_FDCWD, path, content);
+}
+
+const struct got_error *
+got_path_create_fileat(int dir_fd, const char *path, const char *content)
+{
 	const struct got_error *err = NULL;
 	int fd = -1;
 
-	fd = open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW,
+	fd = openat(dir_fd, path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW,
 	    GOT_DEFAULT_FILE_MODE);
 	if (fd == -1) {
 		err = got_error_from_errno2("open", path);

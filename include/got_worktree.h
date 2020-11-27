@@ -42,12 +42,11 @@ struct got_fileindex;
 /*
  * Attempt to initialize a new work tree on disk.
  * The first argument is the path to a directory where the work tree
- * will be created. The path itself must not yet exist, but the dirname(3)
- * of the path must already exist.
+ * will be created. The dirname(3) of the path must already exist.
  * The reference provided will be used to determine the new worktree's
  * base commit. The third argument speficies the work tree's path prefix.
  */
-const struct got_error *got_worktree_init(const char *, struct got_reference *,
+const struct got_error *got_worktree_init(int, const char *, struct got_reference *,
     const char *, struct got_repository *);
 
 /*
