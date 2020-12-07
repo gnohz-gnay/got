@@ -200,11 +200,14 @@ got_repo_get_gitconfig_remotes(int *nremotes,
 }
 
 static int
-is_git_repo(int git_fd)
+is_git_repo(struct got_repository *repo)
 {
 	int ret = 0;
 	struct stat sb;
 	struct got_reference *head_ref;
+	int git_fd;
+
+	git_fd = got_repo_get_path_git_dir_fd(repo);
 
 	if (fstat(git_fd, &sb) == -1)
 		goto done;
@@ -227,7 +230,7 @@ is_git_repo(int git_fd)
 		goto done;
 
 	/* Check if the HEAD reference can be opened. */
-	if (got_ref_open(&head_ref, git_fd, GOT_REF_HEAD, 0) != NULL)
+	if (got_ref_open(&head_ref, repo, GOT_REF_HEAD, 0) != NULL)
 		goto done;
 	got_ref_close(head_ref);
 
@@ -340,64 +343,6 @@ got_repo_get_cached_tag(struct got_repository *repo, struct got_object_id *id)
 }
 
 const struct got_error *
-got_repo_find_git_path(char **path)
-{
-	const struct got_error *error;
-	char *parent_path, *repo_path;
-	int fd, git_dir_fd;
-
-	repo_path = strdup(*path);
-	if (repo_path == NULL)
-		return got_error_from_errno("strdup");
-
-	for (;;) {
-		/* bare git repository? */
-		fd = open(repo_path, O_DIRECTORY);
-		if (fd == -1) {
-			error = got_error_from_errno2("open", repo_path);
-			goto done;
-		}
-		if (is_git_repo(fd)) {
-			close(fd);
-			break;
-		}
-
-		/* git repository with working tree? */
-		git_dir_fd = openat(fd, GOT_GIT_DIR, O_DIRECTORY);
-		if (git_dir_fd == -1 && errno != ENOENT) {
-			error = got_error_from_errno("openat");
-			goto done;
-		} else if (git_dir_fd != -1) {
-			if (is_git_repo(git_dir_fd)) {
-				close(git_dir_fd);
-				close(fd);
-				break;
-			}
-			close(git_dir_fd);
-		}
-
-		close(fd);
-		if (repo_path[0] == '/' && repo_path[1] == '\0') {
-			error = got_error(GOT_ERR_NOT_GIT_REPO);
-			goto done;
-		}
-		error = got_path_dirname(&parent_path, repo_path);
-		if (error)
-			goto done;
-		free(repo_path);
-		repo_path = parent_path;
-	}
-done:
-	if (error) {
-		free(repo_path);
-		return error;
-	}
-	free(*path);
-	*path = repo_path;
-	return NULL;
-}
-
-const struct got_error *
 open_repo(struct got_repository *repo, int fd, const char *path)
 {
 	const struct got_error *err = NULL;
@@ -410,7 +355,7 @@ open_repo(struct got_repository *repo, int fd, const char *path)
 	repo->path_git_dir = strdup(path);
 	if (repo->path_git_dir == NULL)
 		return got_error_from_errno("strdup");
-	if (is_git_repo(repo->path_git_dir_fd)) {
+	if (is_git_repo(repo)) {
 		repo->path = strdup(repo->path_git_dir);
 		if (repo->path == NULL) {
 			err = got_error_from_errno("strdup");
@@ -437,7 +382,7 @@ open_repo(struct got_repository *repo, int fd, const char *path)
 		err = got_error_from_errno("asprintf");
 		goto done;
 	}
-	if (is_git_repo(repo->path_git_dir_fd)) {
+	if (is_git_repo(repo)) {
 		repo->path = strdup(path);
 		if (repo->path == NULL) {
 			err = got_error_from_errno("strdup");
@@ -679,17 +624,19 @@ static const char *repo_extensions[] = {
 };
 
 const struct got_error *
-got_repo_open(struct got_repository **repop, int repo_fd, const char *path,
+got_repo_open(struct got_repository **repop, const char *path,
     const char *global_gitconfig_path)
 {
 	struct got_repository *repo = NULL;
 	const struct got_error *err = NULL;
 	char *abspath, *repo_path = NULL;
 	size_t i;
+	int repo_fd;
 
 	*repop = NULL;
 
 	abspath = strdup(path);
+	repo_fd = open(abspath, O_DIRECTORY);
 
 	repo = calloc(1, sizeof(*repo));
 	if (repo == NULL) {
@@ -702,6 +649,7 @@ got_repo_open(struct got_repository **repop, int repo_fd, const char *path,
 		    sizeof(repo->privsep_children[0]));
 		repo->privsep_children[i].imsg_fd = -1;
 	}
+
 
 	err = got_object_cache_init(&repo->objcache,
 	    GOT_OBJECT_CACHE_TYPE_OBJ);

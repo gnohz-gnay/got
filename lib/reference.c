@@ -443,7 +443,7 @@ done:
 }
 
 const struct got_error *
-got_ref_open(struct got_reference **ref, int git_dir_fd,
+got_ref_open(struct got_reference **ref, struct got_repository *repo,
    const char *refname, int lock)
 {
 	const struct got_error *err = NULL;
@@ -453,7 +453,10 @@ got_ref_open(struct got_reference **ref, int git_dir_fd,
 	};
 	size_t i;
 	int well_known = is_well_known_ref(refname);
+	int git_dir_fd;
 	struct got_lockfile *lf = NULL;
+
+	git_dir_fd = got_repo_get_path_git_dir_fd(repo);
 
 	*ref = NULL;
 
@@ -592,7 +595,7 @@ resolve_symbolic_ref(struct got_reference **resolved,
 	struct got_reference *nextref;
 	const struct got_error *err;
 
-	err = got_ref_open(&nextref, got_repo_get_path_git_dir_fd(repo),
+	err = got_ref_open(&nextref, repo,
 	    ref->ref.symref.ref, 0);
 	if (err)
 		return err;

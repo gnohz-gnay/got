@@ -18,14 +18,8 @@ struct got_repository;
 struct got_pathlist_head;
 struct got_tag_object;
 
-/*
- * Given a path inside a repository, modify it to be
- * the path to the root of the repository.
- */
-const struct got_error *got_repo_find_git_path(char **);
-
 /* Open and close repositories. */
-const struct got_error *got_repo_open(struct got_repository**, int, const char *,
+const struct got_error *got_repo_open(struct got_repository**, const char *,
     const char *);
 const struct got_error *got_repo_close(struct got_repository*);
 

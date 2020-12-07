@@ -46,14 +46,14 @@ struct got_fileindex;
  * The reference provided will be used to determine the new worktree's
  * base commit. The third argument speficies the work tree's path prefix.
  */
-const struct got_error *got_worktree_init(int, const char *, struct got_reference *,
+const struct got_error *got_worktree_init(const char *, struct got_reference *,
     const char *, struct got_repository *);
 
 /*
  * Attempt to open a worktree at or above the specified path.
  * The caller must dispose of it with got_worktree_close().
  */
-const struct got_error *got_worktree_open(struct got_worktree **, int, const char *, int);
+const struct got_error *got_worktree_open(struct got_worktree **, const char *);
 
 /* Dispose of an open work tree. */
 const struct got_error *got_worktree_close(struct got_worktree *);

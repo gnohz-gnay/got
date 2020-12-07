@@ -34,7 +34,7 @@ struct got_object_id;
  * must be unlocked with got_ref_unlock() before got_ref_close() is called.
  */
 const struct got_error *got_ref_open(struct got_reference **,
-    int, const char *, int);
+    struct got_repository *, const char *, int);
 
 /*
  * Allocate a new reference for a given object ID.

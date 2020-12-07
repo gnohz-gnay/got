@@ -763,8 +763,7 @@ cmd_import(int argc, char *argv[])
 	error = get_gitconfig_path(&gitconfig_path);
 	if (error)
 		goto done;
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, gitconfig_path);
+	error = got_repo_open(&repo, repo_path, gitconfig_path);
 	if (error)
 		goto done;
 
@@ -785,8 +784,7 @@ cmd_import(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	error = got_ref_open(&branch_ref, -1, refname, 0);
+	error = got_ref_open(&branch_ref, repo, refname, 0);
 	if (error) {
 		if (error->code != GOT_ERR_NOT_REF)
 			goto done;
@@ -865,8 +863,7 @@ cmd_import(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	error = got_ref_open(&head_ref, -1, GOT_REF_HEAD, 0);
+	error = got_ref_open(&head_ref, repo, GOT_REF_HEAD, 0);
 	if (error) {
 		if (error->code != GOT_ERR_NOT_REF) {
 			if (logmsg_path)
@@ -1506,8 +1503,7 @@ cmd_clone(int argc, char *argv[])
 		error = got_repo_init(repo_path, repo_fd);
 		if (error)
 			goto done;
-		printf("REPO_OPEN - BROKEN\n");
-		error = got_repo_open(&repo, -1, repo_path, NULL);
+		error = got_repo_open(&repo, repo_path, NULL);
 		if (error)
 			goto done;
 	}
@@ -1596,8 +1592,7 @@ cmd_clone(int argc, char *argv[])
 		if (strcmp(refname, GOT_REF_HEAD) != 0)
 			continue;
 
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&target_ref, -1, target, 0);
+		error = got_ref_open(&target_ref, repo, target, 0);
 		if (error) {
 			if (error->code == GOT_ERR_NOT_REF) {
 				error = NULL;
@@ -1630,8 +1625,7 @@ cmd_clone(int argc, char *argv[])
 			free(remote_refname);
 			goto done;
 		}
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&target_ref, -1, remote_target, 0);
+		error = got_ref_open(&target_ref, repo, remote_target, 0);
 		if (error) {
 			free(remote_refname);
 			free(remote_target);
@@ -1659,8 +1653,7 @@ cmd_clone(int argc, char *argv[])
 			const char *target = pe->path;
 			struct got_reference *target_ref;
 
-			printf("GOT_REF_OPEN - BROKEN\n");
-			error = got_ref_open(&target_ref, -1, target, 0);
+			error = got_ref_open(&target_ref, repo, target, 0);
 			if (error) {
 				if (error->code == GOT_ERR_NOT_REF) {
 					error = NULL;
@@ -1785,8 +1778,7 @@ update_symref(const char *refname, struct got_reference *target_ref,
 	struct got_reference *symref;
 	int symref_is_locked = 0;
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	err = got_ref_open(&symref, -1, refname, 1);
+	err = got_ref_open(&symref, repo, refname, 1);
 	if (err) {
 		if (err->code != GOT_ERR_NOT_REF)
 			return err;
@@ -1943,8 +1935,7 @@ delete_missing_refs(struct got_pathlist_head *their_refs,
 
 		if (local_refname) {
 			struct got_reference *ref;
-			printf("GOT_REF_OPEN - BROKEN\n");
-			err = got_ref_open(&ref, -1, local_refname, 1);
+			err = got_ref_open(&ref, repo, local_refname, 1);
 			if (err) {
 				if (err->code != GOT_ERR_NOT_REF)
 					break;
@@ -1987,8 +1978,7 @@ update_wanted_ref(const char *refname, struct got_object_id *id,
 	    remote_repo_name, refname) == -1)
 		return got_error_from_errno("asprintf");
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	err = got_ref_open(&ref, -1, remote_refname, 1);
+	err = got_ref_open(&ref, repo, remote_refname, 1);
 	if (err) {
 		if (err->code != GOT_ERR_NOT_REF)
 			goto done;
@@ -2110,8 +2100,7 @@ cmd_fetch(int argc, char *argv[])
 	}
 
 	if (repo_path == NULL) {
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error && error->code != GOT_ERR_NOT_WORKTREE)
 			goto done;
 		else
@@ -2132,8 +2121,7 @@ cmd_fetch(int argc, char *argv[])
 		}
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	if (error)
 		goto done;
 
@@ -2282,8 +2270,7 @@ cmd_fetch(int argc, char *argv[])
 
 		if (remote->mirror_references ||
 		    strncmp("refs/tags/", refname, 10) == 0) {
-			printf("GOT_REF_OPEN - BROKEN\n");
-			error = got_ref_open(&ref, -1, refname, 1);
+			error = got_ref_open(&ref, repo, refname, 1);
 			if (error) {
 				if (error->code != GOT_ERR_NOT_REF)
 					goto done;
@@ -2308,8 +2295,7 @@ cmd_fetch(int argc, char *argv[])
 				goto done;
 			}
 
-			printf("GOT_REF_OPEN - BROKEN\n");
-			error = got_ref_open(&ref, -1, remote_refname, 1);
+			error = got_ref_open(&ref, repo, remote_refname, 1);
 			if (error) {
 				if (error->code != GOT_ERR_NOT_REF)
 					goto done;
@@ -2329,8 +2315,7 @@ cmd_fetch(int argc, char *argv[])
 			}
 
 			/* Also create a local branch if none exists yet. */
-			printf("GOT_REF_OPEN - BROKEN\n");
-			error = got_ref_open(&ref, -1, refname, 1);
+			error = got_ref_open(&ref, repo, refname, 1);
 			if (error) {
 				if (error->code != GOT_ERR_NOT_REF)
 					goto done;
@@ -2379,8 +2364,7 @@ cmd_fetch(int argc, char *argv[])
 				goto done;
 			}
 
-			printf("GOT_REF_OPEN - BROKEN\n");
-			error = got_ref_open(&target_ref, -1, remote_target,
+			error = got_ref_open(&target_ref, repo, remote_target,
 			    0);
 			if (error) {
 				free(remote_refname);
@@ -2751,10 +2735,6 @@ cmd_checkout(int argc, char *argv[])
 	if (caph_rights_limit(worktree_fd, &rights) < 0)
 		err(1, "caph_rights_limit");
 
-	error = got_repo_find_git_path(&repo_path);
-	if (error)
-		goto done;
-
 	int repo_fd = open(repo_path, O_DIRECTORY);
 	cap_rights_init(&rights, CAP_FCNTL, CAP_FSTAT, CAP_RENAMEAT_SOURCE, CAP_RENAMEAT_TARGET, CAP_MKDIRAT,
 	    CAP_SEEK, CAP_CREATE, CAP_READ, CAP_WRITE, CAP_UNLINKAT, CAP_FLOCK, CAP_FCHMOD, CAP_MMAP_R);
@@ -2771,26 +2751,32 @@ cmd_checkout(int argc, char *argv[])
 
 	caph_cache_catpages();
 
-	if (caph_enter() < 0)
-		err(1, "caph_enter");
-
-	error = got_repo_open(&repo, repo_fd, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
 
-	error = got_ref_open(&head_ref, got_repo_get_path_git_dir_fd(repo), branch_name, 0);
+	printf("got_repo_open done\n");
+
+	error = got_ref_open(&head_ref, repo, branch_name, 0);
 	if (error != NULL)
 		goto done;
 
-	error = got_worktree_init(worktree_fd, worktree_path, head_ref, path_prefix, repo);
+	printf("got_ref_open done\n");
+
+	error = got_worktree_init(worktree_path, head_ref, path_prefix, repo);
 	if (error != NULL && !(error->code == GOT_ERR_ERRNO && errno == EEXIST))
 		goto done;
 
-	error = got_worktree_open(&worktree, worktree_fd, worktree_path, repo_fd);
+	printf("got_worktree_init done\n");
+
+	error = got_worktree_open(&worktree, worktree_path);
 	if (error != NULL)
 		goto done;
 
-	printf("test\n");
+	printf("got_worktree_open done\n");
+
+	if (caph_enter() < 0)
+		err(1, "caph_enter");
 
 	error = got_worktree_match_path_prefix(&same_path_prefix, worktree,
 	    path_prefix);
@@ -3011,8 +2997,7 @@ wrap_not_worktree_error(const struct got_error *orig_err,
 	struct got_repository *repo;
 	static char msg[512];
 
-	printf("REPO_OPEN - BROKEN\n");
-	err = got_repo_open(&repo, -1, path, NULL);
+	err = got_repo_open(&repo, path, NULL);
 	if (err)
 		return orig_err;
 
@@ -3073,8 +3058,7 @@ cmd_update(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, worktree_path, -1);
+	error = got_worktree_open(&worktree, worktree_path);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "update",
@@ -3086,8 +3070,7 @@ cmd_update(int argc, char *argv[])
 	if (error)
 		goto done;
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -3101,8 +3084,7 @@ cmd_update(int argc, char *argv[])
 	if (error)
 		goto done;
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	error = got_ref_open(&head_ref, -1, branch_name ? branch_name :
+	error = got_ref_open(&head_ref, repo, branch_name ? branch_name :
 	    got_worktree_get_head_ref_name(worktree), 0);
 	if (error != NULL)
 		goto done;
@@ -3839,8 +3821,7 @@ cmd_log(int argc, char *argv[])
 	}
 
 	if (repo_path == NULL) {
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error && error->code != GOT_ERR_NOT_WORKTREE)
 			goto done;
 		error = NULL;
@@ -3871,8 +3852,7 @@ cmd_log(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
 
@@ -3884,8 +3864,7 @@ cmd_log(int argc, char *argv[])
 	if (start_commit == NULL) {
 		struct got_reference *head_ref;
 		struct got_commit_object *commit = NULL;
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&head_ref, -1,
+		error = got_ref_open(&head_ref, repo,
 		    worktree ? got_worktree_get_head_ref_name(worktree)
 		    : GOT_REF_HEAD, 0);
 		if (error != NULL)
@@ -4230,8 +4209,7 @@ cmd_diff(int argc, char *argv[])
 		if (repo_path)
 			errx(1,
 			    "-r option can't be used when diffing a work tree");
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error) {
 			if (error->code == GOT_ERR_NOT_WORKTREE)
 				error = wrap_not_worktree_error(error, "diff",
@@ -4262,8 +4240,7 @@ cmd_diff(int argc, char *argv[])
 		id_str1 = argv[0];
 		id_str2 = argv[1];
 		if (repo_path == NULL) {
-			printf("WORKTREE_OPEN - BROKEN\n");
-			error = got_worktree_open(&worktree, -1, cwd, -1);
+			error = got_worktree_open(&worktree, cwd);
 			if (error && error->code != GOT_ERR_NOT_WORKTREE)
 				goto done;
 			if (worktree) {
@@ -4284,8 +4261,7 @@ cmd_diff(int argc, char *argv[])
 	} else
 		usage_diff();
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	free(repo_path);
 	if (error != NULL)
 		goto done;
@@ -4567,8 +4543,7 @@ cmd_blame(int argc, char *argv[])
 		goto done;
 	}
 	if (repo_path == NULL) {
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error && error->code != GOT_ERR_NOT_WORKTREE)
 			goto done;
 		else
@@ -4590,8 +4565,7 @@ cmd_blame(int argc, char *argv[])
 		}
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
 
@@ -4622,8 +4596,7 @@ cmd_blame(int argc, char *argv[])
 
 	if (commit_id_str == NULL) {
 		struct got_reference *head_ref;
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&head_ref, -1, worktree ?
+		error = got_ref_open(&head_ref, repo, worktree ?
 		    got_worktree_get_head_ref_name(worktree) : GOT_REF_HEAD, 0);
 		if (error != NULL)
 			goto done;
@@ -4898,8 +4871,7 @@ cmd_tree(int argc, char *argv[])
 		goto done;
 	}
 	if (repo_path == NULL) {
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error && error->code != GOT_ERR_NOT_WORKTREE)
 			goto done;
 		else
@@ -4920,8 +4892,7 @@ cmd_tree(int argc, char *argv[])
 		}
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
 
@@ -4962,8 +4933,7 @@ cmd_tree(int argc, char *argv[])
 			refname = got_worktree_get_head_ref_name(worktree);
 		else
 			refname = GOT_REF_HEAD;
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&head_ref, -1, refname, 0);
+		error = got_ref_open(&head_ref, repo, refname, 0);
 		if (error != NULL)
 			goto done;
 		error = got_ref_resolve(&commit_id, repo, head_ref);
@@ -5082,16 +5052,14 @@ cmd_status(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "status", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -5156,8 +5124,7 @@ delete_ref(struct got_repository *repo, const char *refname)
 	const struct got_error *err = NULL;
 	struct got_reference *ref;
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	err = got_ref_open(&ref, -1, refname, 0);
+	err = got_ref_open(&ref, repo, refname, 0);
 	if (err)
 		return err;
 
@@ -5188,8 +5155,7 @@ add_ref(struct got_repository *repo, const char *refname, const char *target)
 
 		if (err->code != GOT_ERR_BAD_OBJ_ID_STR)
 			return err;
-		printf("GOT_REF_OPEN - BROKEN\n");
-		err = got_ref_open(&target_ref, -1, target, 0);
+		err = got_ref_open(&target_ref, repo, target, 0);
 		if (err)
 			return err;
 		err = got_ref_resolve(&id, repo, target_ref);
@@ -5225,8 +5191,7 @@ add_symref(struct got_repository *repo, const char *refname, const char *target)
 	if (refname[0] == '-')
 		return got_error_path(refname, GOT_ERR_REF_NAME_MINUS);
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	err = got_ref_open(&target_ref, -1, target, 0);
+	err = got_ref_open(&target_ref, repo, target, 0);
 	if (err)
 		return err;
 
@@ -5338,8 +5303,7 @@ cmd_ref(int argc, char *argv[])
 	}
 
 	if (repo_path == NULL) {
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error && error->code != GOT_ERR_NOT_WORKTREE)
 			goto done;
 		else
@@ -5360,8 +5324,7 @@ cmd_ref(int argc, char *argv[])
 		}
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
 
@@ -5482,8 +5445,7 @@ list_branches(struct got_repository *repo, struct got_worktree *worktree)
 			return err;
 
 		if (rebase_in_progress || histedit_in_progress) {
-			printf("GOT_REF_OPEN - BROKEN\n");
-			err = got_ref_open(&temp_ref, -1,
+			err = got_ref_open(&temp_ref, repo,
 			    got_worktree_get_head_ref_name(worktree), 0);
 			if (err)
 				return err;
@@ -5515,8 +5477,7 @@ delete_branch(struct got_repository *repo, struct got_worktree *worktree,
 	if (asprintf(&refname, "refs/heads/%s", branch_name) == -1)
 		return got_error_from_errno("asprintf");
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	err = got_ref_open(&ref, -1, refname, 0);
+	err = got_ref_open(&ref, repo, refname, 0);
 	if (err)
 		goto done;
 
@@ -5557,8 +5518,7 @@ add_branch(struct got_repository *repo, const char *branch_name,
 		goto done;
 	}
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	err = got_ref_open(&ref, -1, refname, 0);
+	err = got_ref_open(&ref, repo, refname, 0);
 	if (err == NULL) {
 		err = got_error(GOT_ERR_BRANCH_EXISTS);
 		goto done;
@@ -5658,8 +5618,7 @@ cmd_branch(int argc, char *argv[])
 	}
 
 	if (repo_path == NULL) {
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error && error->code != GOT_ERR_NOT_WORKTREE)
 			goto done;
 		else
@@ -5680,8 +5639,7 @@ cmd_branch(int argc, char *argv[])
 		}
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	if (error != NULL)
 		goto done;
 
@@ -5724,8 +5682,7 @@ cmd_branch(int argc, char *argv[])
 				error = got_error_from_errno("asprintf");
 				goto done;
 			}
-			printf("GOT_REF_OPEN - BROKEN\n");
-			error = got_ref_open(&ref, -1, branch_refname, 0);
+			error = got_ref_open(&ref, repo, branch_refname, 0);
 			free(branch_refname);
 			if (error)
 				goto done;
@@ -6054,8 +6011,7 @@ add_tag(struct got_repository *repo, struct got_worktree *worktree,
 		goto done;
 	}
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	err = got_ref_open(&ref, -1, refname, 0);
+	err = got_ref_open(&ref, repo, refname, 0);
 	if (err == NULL) {
 		err = got_error(GOT_ERR_TAG_EXISTS);
 		goto done;
@@ -6189,8 +6145,7 @@ cmd_tag(int argc, char *argv[])
 	}
 
 	if (repo_path == NULL) {
-		printf("WORKTREE_OPEN - BROKEN\n");
-		error = got_worktree_open(&worktree, -1, cwd, -1);
+		error = got_worktree_open(&worktree, cwd);
 		if (error && error->code != GOT_ERR_NOT_WORKTREE)
 			goto done;
 		else
@@ -6212,8 +6167,7 @@ cmd_tag(int argc, char *argv[])
 	}
 
 	if (do_list) {
-		printf("REPO_OPEN - BROKEN\n");
-		error = got_repo_open(&repo, -1, repo_path, NULL);
+		error = got_repo_open(&repo, repo_path, NULL);
 		if (error != NULL)
 			goto done;
 		error = apply_unveil(got_repo_get_path(repo), 1, NULL);
@@ -6224,8 +6178,7 @@ cmd_tag(int argc, char *argv[])
 		error = get_gitconfig_path(&gitconfig_path);
 		if (error)
 			goto done;
-		printf("REPO_OPEN - BROKEN\n");
-		error = got_repo_open(&repo, -1, repo_path, gitconfig_path);
+		error = got_repo_open(&repo, repo_path, gitconfig_path);
 		if (error != NULL)
 			goto done;
 
@@ -6238,8 +6191,7 @@ cmd_tag(int argc, char *argv[])
 		if (commit_id_arg == NULL) {
 			struct got_reference *head_ref;
 			struct got_object_id *commit_id;
-			printf("GOT_REF_OPEN - BROKEN\n");
-			error = got_ref_open(&head_ref, -1,
+			error = got_ref_open(&head_ref, repo,
 			    worktree ? got_worktree_get_head_ref_name(worktree)
 			    : GOT_REF_HEAD, 0);
 			if (error)
@@ -6330,16 +6282,14 @@ cmd_add(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "add", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -6487,16 +6437,14 @@ cmd_remove(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "remove", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error)
 		goto done;
@@ -6738,16 +6686,14 @@ cmd_revert(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "revert", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -6945,8 +6891,7 @@ cmd_commit(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "commit", cwd);
@@ -6969,8 +6914,7 @@ cmd_commit(int argc, char *argv[])
 	error = get_gitconfig_path(&gitconfig_path);
 	if (error)
 		goto done;
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    gitconfig_path);
 	if (error != NULL)
 		goto done;
@@ -7086,8 +7030,7 @@ cmd_cherrypick(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "cherrypick",
@@ -7095,8 +7038,7 @@ cmd_cherrypick(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -7112,8 +7054,7 @@ cmd_cherrypick(int argc, char *argv[])
 		struct got_reference *ref;
 		if (error->code != GOT_ERR_BAD_OBJ_ID_STR)
 			goto done;
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&ref, -1, argv[0], 0);
+		error = got_ref_open(&ref, repo, argv[0], 0);
 		if (error != NULL)
 			goto done;
 		error = got_ref_resolve(&commit_id, repo, ref);
@@ -7125,8 +7066,7 @@ cmd_cherrypick(int argc, char *argv[])
 	if (error)
 		goto done;
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	error = got_ref_open(&head_ref, -1,
+	error = got_ref_open(&head_ref, repo,
 	    got_worktree_get_head_ref_name(worktree), 0);
 	if (error != NULL)
 		goto done;
@@ -7213,16 +7153,14 @@ cmd_backout(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "backout", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -7238,8 +7176,7 @@ cmd_backout(int argc, char *argv[])
 		struct got_reference *ref;
 		if (error->code != GOT_ERR_BAD_OBJ_ID_STR)
 			goto done;
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&ref, -1, argv[0], 0);
+		error = got_ref_open(&ref, repo, argv[0], 0);
 		if (error != NULL)
 			goto done;
 		error = got_ref_resolve(&commit_id, repo, ref);
@@ -7251,8 +7188,7 @@ cmd_backout(int argc, char *argv[])
 	if (error)
 		goto done;
 
-	printf("GOT_REF_OPEN - BROKEN\n");
-	error = got_ref_open(&head_ref, -1,
+	error = got_ref_open(&head_ref, repo,
 	    got_worktree_get_head_ref_name(worktree), 0);
 	if (error != NULL)
 		goto done;
@@ -7625,16 +7561,14 @@ cmd_rebase(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "rebase", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -7702,8 +7636,7 @@ cmd_rebase(int argc, char *argv[])
 			goto done;
 		}
 	} else {
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&branch, -1, argv[0], 0);
+		error = got_ref_open(&branch, repo, argv[0], 0);
 		if (error != NULL)
 			goto done;
 	}
@@ -8762,16 +8695,14 @@ cmd_histedit(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "histedit", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -8867,8 +8798,7 @@ cmd_histedit(int argc, char *argv[])
 			goto done;
 		}
 
-		printf("GOT_REF_OPEN - BROKEN\n");
-		error = got_ref_open(&branch, -1,
+		error = got_ref_open(&branch, repo,
 		    got_worktree_get_head_ref_name(worktree), 0);
 		if (error != NULL)
 			goto done;
@@ -9147,8 +9077,7 @@ cmd_integrate(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "integrate",
@@ -9160,8 +9089,7 @@ cmd_integrate(int argc, char *argv[])
 	if (error)
 		goto done;
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -9334,16 +9262,14 @@ cmd_stage(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "stage", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -9449,16 +9375,14 @@ cmd_unstage(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "unstage", cwd);
 		goto done;
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, got_worktree_get_repo_path(worktree),
+	error = got_repo_open(&repo, got_worktree_get_repo_path(worktree),
 	    NULL);
 	if (error != NULL)
 		goto done;
@@ -9705,8 +9629,7 @@ cmd_cat(int argc, char *argv[])
 		error = got_error_from_errno("getcwd");
 		goto done;
 	}
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error && error->code != GOT_ERR_NOT_WORKTREE)
 		goto done;
 	if (worktree) {
@@ -9726,8 +9649,7 @@ cmd_cat(int argc, char *argv[])
 			return got_error_from_errno("getcwd");
 	}
 
-	printf("REPO_OPEN - BROKEN\n");
-	error = got_repo_open(&repo, -1, repo_path, NULL);
+	error = got_repo_open(&repo, repo_path, NULL);
 	free(repo_path);
 	if (error != NULL)
 		goto done;
@@ -9917,8 +9839,7 @@ cmd_info(int argc, char *argv[])
 		goto done;
 	}
 
-	printf("WORKTREE_OPEN - BROKEN\n");
-	error = got_worktree_open(&worktree, -1, cwd, -1);
+	error = got_worktree_open(&worktree, cwd);
 	if (error) {
 		if (error->code == GOT_ERR_NOT_WORKTREE)
 			error = wrap_not_worktree_error(error, "status", cwd);
