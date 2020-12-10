@@ -310,6 +310,7 @@ apply_unveil(const char *repo_path, int repo_read_only,
     const char *worktree_path)
 {
 	const struct got_error *err;
+	char *cwd;
 
 #ifdef PROFILE
 	if (unveil("gmon.out", "rwc") != 0)
@@ -323,6 +324,9 @@ apply_unveil(const char *repo_path, int repo_read_only,
 
 	if (unveil(GOT_TMPDIR_STR, "rwc") != 0)
 		return got_error_from_errno2("unveil", GOT_TMPDIR_STR);
+
+	cwd = getcwd(NULL, 0);
+	unveil(cwd, "rwc");
 
 	err = got_privsep_unveil_exec_helpers();
 	if (err != NULL)

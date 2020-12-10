@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <fcntl.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -63,8 +64,15 @@ got_opentemp(void)
 const struct got_error *
 got_opentemp_named(char **path, FILE **outfile, const char *basepath)
 {
+	return got_opentemp_namedat(AT_FDCWD, path, outfile, basepath);
+}
+
+const struct got_error *
+got_opentemp_namedat(int dir_fd, char **path, FILE **outfile, const char *basepath)
+{
 	const struct got_error *err = NULL;
-	int fd;
+	char *old_cwd = NULL;
+	int fd, chdir_err;
 
 	*outfile = NULL;
 
@@ -73,7 +81,28 @@ got_opentemp_named(char **path, FILE **outfile, const char *basepath)
 		return got_error_from_errno("asprintf");
 	}
 
+	if (dir_fd != AT_FDCWD) {
+		old_cwd = getcwd(NULL, 0);
+		if (old_cwd == NULL)
+			return got_error_from_errno("getcwd");
+		chdir_err = fchdir(dir_fd);
+		if (chdir_err == -1) {
+			free(old_cwd);
+			return got_error_from_errno("fchdir");
+		}
+	}
+
 	fd = mkstemp(*path);
+
+	if (dir_fd != AT_FDCWD) {
+		chdir_err = chdir(old_cwd);
+		if (chdir_err == -1) {
+			free(old_cwd);
+			return got_error_from_errno("fchdir");
+		}
+		free(old_cwd);
+	}
+
 	if (fd == -1) {
 		err = got_error_from_errno2("mkstemp", *path);
 		free(*path);
@@ -94,8 +123,14 @@ got_opentemp_named(char **path, FILE **outfile, const char *basepath)
 const struct got_error *
 got_opentemp_named_fd(char **path, int *outfd, const char *basepath)
 {
+	return got_opentemp_named_fdat(AT_FDCWD, path, outfd, basepath);
+}
+const struct got_error *
+got_opentemp_named_fdat(int dir_fd, char **path, int *outfd, const char *basepath)
+{
 	const struct got_error *err = NULL;
-	int fd;
+	char *old_cwd;
+	int fd, chdir_err;
 
 	*outfd = -1;
 
@@ -104,12 +139,35 @@ got_opentemp_named_fd(char **path, int *outfd, const char *basepath)
 		return got_error_from_errno("asprintf");
 	}
 
+	if (dir_fd != AT_FDCWD) {
+		old_cwd = getcwd(NULL, 0);
+		if (old_cwd == NULL)
+			return got_error_from_errno("getcwd");
+		chdir_err = fchdir(dir_fd);
+		if (chdir_err == -1) {
+			free(old_cwd);
+			return got_error_from_errno("fchdir");
+		}
+	}
+
 	fd = mkstemp(*path);
+
 	if (fd == -1) {
-		err = got_error_from_errno("mkstemp");
+		err = got_error_from_errno2("mkstemp", *path);
 		free(*path);
 		*path = NULL;
+		if (old_cwd)
+			free(old_cwd);
 		return err;
+	}
+
+	if (dir_fd != AT_FDCWD) {
+		chdir_err = chdir(old_cwd);
+		if (chdir_err == -1) {
+			free(old_cwd);
+			return got_error_from_errno("fchdir");
+		}
+		free(old_cwd);
 	}
 
 	*outfd = fd;
