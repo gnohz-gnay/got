@@ -272,7 +272,7 @@ got_pathlist_free(struct got_pathlist_head *pathlist)
 }
 
 static const struct got_error *
-make_parent_dirs(const char *abspath)
+make_parent_dirs(int fd, const char *abspath)
 {
 	const struct got_error *err = NULL;
 	char *parent;
@@ -281,17 +281,17 @@ make_parent_dirs(const char *abspath)
 	if (err)
 		return err;
 
-	if (mkdir(parent, GOT_DEFAULT_DIR_MODE) == -1) {
+	if (mkdirat(fd, parent, GOT_DEFAULT_DIR_MODE) == -1) {
 		if (errno == ENOENT) {
-			err = make_parent_dirs(parent);
+			err = make_parent_dirs(fd, parent);
 			if (err)
 				goto done;
-			if (mkdir(parent, GOT_DEFAULT_DIR_MODE) == -1) {
-				err = got_error_from_errno2("mkdir", parent);
+			if (mkdirat(fd, parent, GOT_DEFAULT_DIR_MODE) == -1) {
+				err = got_error_from_errno2("mkdirat", parent);
 				goto done;
 			}
 		} else
-			err = got_error_from_errno2("mkdir", parent);
+			err = got_error_from_errno2("mkdirat", parent);
 	}
 done:
 	free(parent);
@@ -301,17 +301,23 @@ done:
 const struct got_error *
 got_path_mkdir(const char *abspath)
 {
+	return got_path_mkdirat(AT_FDCWD, abspath);
+}
+
+const struct got_error *
+got_path_mkdirat(int fd, const char *path)
+{
 	const struct got_error *err = NULL;
 
-	if (mkdir(abspath, GOT_DEFAULT_DIR_MODE) == -1) {
+	if (mkdirat(fd, path, GOT_DEFAULT_DIR_MODE) == -1) {
 		if (errno == ENOENT) {
-			err = make_parent_dirs(abspath);
+			err = make_parent_dirs(fd, path);
 			if (err)
 				goto done;
-			if (mkdir(abspath, GOT_DEFAULT_DIR_MODE) == -1)
-				err = got_error_from_errno2("mkdir", abspath);
+			if (mkdirat(fd, path, GOT_DEFAULT_DIR_MODE) == -1)
+				err = got_error_from_errno2("mkdirat", path);
 		} else
-			err = got_error_from_errno2("mkdir", abspath);
+			err = got_error_from_errno2("mkdirat", path);
 	}
 
 done:
