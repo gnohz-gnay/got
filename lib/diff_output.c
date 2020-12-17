@@ -28,6 +28,8 @@
 #include <diff_main.h>
 #include <diff_output.h>
 
+#include "openbsd-compat.h"
+
 #include "diff_internal.h"
 
 static int

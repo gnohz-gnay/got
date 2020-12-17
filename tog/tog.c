@@ -947,7 +947,7 @@ view_vborder(struct tog_view *view)
 	if (panel == NULL)
 		return;
 
-	view_above = panel_userptr(panel);
+	view_above = (struct tog_view *)panel_userptr(panel);
 	mvwvline(view->window, view->begin_y, view_above->begin_x - 1,
 	    got_locale_is_utf8() ? ACS_VLINE : '|', view->nlines);
 }

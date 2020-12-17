@@ -32,6 +32,8 @@
 #include <arraylist.h>
 #include <diff_main.h>
 
+#include "openbsd-compat.h"
+
 #include "diff_internal.h"
 #include "diff_debug.h"
 
