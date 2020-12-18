@@ -31,10 +31,6 @@
 
 #define GOT_IMSG_FD_CHILD (STDERR_FILENO + 1)
 
-#ifndef GOT_LIBEXECDIR
-#define GOT_LIBEXECDIR /usr/libexec
-#endif
-
 /* Names of helper programs in libexec directory */
 #define GOT_PROG_READ_OBJECT	got-read-object
 #define GOT_PROG_READ_TREE	got-read-tree
